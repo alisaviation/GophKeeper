@@ -25,22 +25,18 @@ func TestMemoryStorage_UserCRUD(t *testing.T) {
 		UpdatedAt:    time.Now(),
 	}
 
-	// Test Create
 	err := storage.UserRepository().Create(ctx, user)
 	require.NoError(t, err)
 
-	// Test GetByID
 	retrieved, err := storage.UserRepository().GetByID(ctx, user.ID)
 	require.NoError(t, err)
 	assert.Equal(t, user.ID, retrieved.ID)
 	assert.Equal(t, user.Login, retrieved.Login)
 
-	// Test GetByLogin
 	retrievedByLogin, err := storage.UserRepository().GetByLogin(ctx, user.Login)
 	require.NoError(t, err)
 	assert.Equal(t, user.ID, retrievedByLogin.ID)
 
-	// Test Update
 	user.PasswordHash = "newhash"
 	err = storage.UserRepository().Update(ctx, user)
 	require.NoError(t, err)
@@ -49,7 +45,6 @@ func TestMemoryStorage_UserCRUD(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "newhash", updated.PasswordHash)
 
-	// Test Delete
 	err = storage.UserRepository().Delete(ctx, user.ID)
 	require.NoError(t, err)
 
@@ -132,7 +127,6 @@ func TestMemoryStorage_GetChangedSecrets(t *testing.T) {
 
 	userID := uuid.New().String()
 
-	// Создаем первый секрет (версия 1)
 	secret1 := &domain.Secret{
 		ID:            uuid.New().String(),
 		UserID:        userID,
@@ -149,18 +143,15 @@ func TestMemoryStorage_GetChangedSecrets(t *testing.T) {
 	err := storage.SecretRepository().Create(ctx, secret1)
 	require.NoError(t, err)
 
-	// Получаем измененные секреты после версии 0 (все секреты версии >= 0)
 	changedSecrets, err := storage.SecretRepository().GetChangedSecrets(ctx, userID, 0)
 	require.NoError(t, err)
 	assert.Len(t, changedSecrets, 1)
 	assert.Equal(t, secret1.ID, changedSecrets[0].ID)
 
-	// Обновляем первый секрет (версия станет 2)
 	secret1.Name = "Updated Secret 1"
 	err = storage.SecretRepository().Update(ctx, secret1)
 	require.NoError(t, err)
 
-	// Создаем второй секрет (версия 1)
 	secret2 := &domain.Secret{
 		ID:            uuid.New().String(),
 		UserID:        userID,
@@ -177,13 +168,10 @@ func TestMemoryStorage_GetChangedSecrets(t *testing.T) {
 	err = storage.SecretRepository().Create(ctx, secret2)
 	require.NoError(t, err)
 
-	// Получаем измененные секреты после версии 1
-	// (первый секрет с версией 2 и второй секрет с версией 1)
 	changedSecretsAfter, err := storage.SecretRepository().GetChangedSecrets(ctx, userID, 1)
 	require.NoError(t, err)
 	assert.Len(t, changedSecretsAfter, 2)
 
-	// Проверяем что оба секрета присутствуют
 	foundSecret1 := false
 	foundSecret2 := false
 	for _, s := range changedSecretsAfter {
@@ -199,11 +187,9 @@ func TestMemoryStorage_GetChangedSecrets(t *testing.T) {
 	assert.True(t, foundSecret1, "Secret 1 should be in changed secrets")
 	assert.True(t, foundSecret2, "Secret 2 should be in changed secrets")
 
-	// Soft delete первого секрета (версия станет 3)
 	err = storage.SecretRepository().SoftDelete(ctx, secret1.ID, userID)
 	require.NoError(t, err)
 
-	// Получаем измененные секреты после версии 2 (только soft deleted секрет с версией 3)
 	changedSecretsAfterDelete, err := storage.SecretRepository().GetChangedSecrets(ctx, userID, 2)
 	require.NoError(t, err)
 	assert.Len(t, changedSecretsAfterDelete, 1)
@@ -218,7 +204,6 @@ func TestMemoryStorage_ListByUserAndType(t *testing.T) {
 
 	userID := uuid.New().String()
 
-	// Создаем секреты разных типов
 	loginSecret := &domain.Secret{
 		ID:            uuid.New().String(),
 		UserID:        userID,
@@ -251,19 +236,16 @@ func TestMemoryStorage_ListByUserAndType(t *testing.T) {
 	err = storage.SecretRepository().Create(ctx, textSecret)
 	require.NoError(t, err)
 
-	// Test ListByUserAndType для LoginPassword
 	loginSecrets, err := storage.SecretRepository().ListByUserAndType(ctx, userID, domain.LoginPassword)
 	require.NoError(t, err)
 	assert.Len(t, loginSecrets, 1)
 	assert.Equal(t, loginSecret.ID, loginSecrets[0].ID)
 
-	// Test ListByUserAndType для TextData
 	textSecrets, err := storage.SecretRepository().ListByUserAndType(ctx, userID, domain.TextData)
 	require.NoError(t, err)
 	assert.Len(t, textSecrets, 1)
 	assert.Equal(t, textSecret.ID, textSecrets[0].ID)
 
-	// Test ListByUser (все секреты)
 	allSecrets, err := storage.SecretRepository().ListByUser(ctx, userID)
 	require.NoError(t, err)
 	assert.Len(t, allSecrets, 2)
@@ -273,7 +255,6 @@ func TestMemoryStorage_Transaction(t *testing.T) {
 	storage := memory.NewStorage()
 	ctx := context.Background()
 
-	// Test transaction methods (they should not panic)
 	tx, err := storage.TransactionManager().BeginTx(ctx)
 	require.NoError(t, err)
 	require.NotNil(t, tx)
@@ -303,20 +284,16 @@ func TestMemoryStorage_SoftDeleteAndVersion(t *testing.T) {
 		IsDeleted:     false,
 	}
 
-	// Создаем секрет
 	err := storage.SecretRepository().Create(ctx, secret)
 	require.NoError(t, err)
 
-	// Проверяем версию до soft delete
 	versionBefore, err := storage.SecretRepository().GetUserSecretsVersion(ctx, userID)
 	require.NoError(t, err)
 	assert.Equal(t, int64(1), versionBefore)
 
-	// Soft delete
 	err = storage.SecretRepository().SoftDelete(ctx, secret.ID, userID)
 	require.NoError(t, err)
 
-	// После soft delete секрет не должен быть в обычных запросах
 	_, err = storage.SecretRepository().GetByID(ctx, secret.ID, userID)
 	require.Error(t, err)
 
@@ -324,7 +301,6 @@ func TestMemoryStorage_SoftDeleteAndVersion(t *testing.T) {
 	require.NoError(t, err)
 	assert.Len(t, secrets, 0)
 
-	// Но GetChangedSecrets должен вернуть soft deleted секрет
 	changedSecrets, err := storage.SecretRepository().GetChangedSecrets(ctx, userID, 0)
 	require.NoError(t, err)
 	require.Len(t, changedSecrets, 1)
@@ -338,7 +314,6 @@ func TestMemoryStorage_GetUserSecretsVersion(t *testing.T) {
 
 	userID := uuid.New().String()
 
-	// Создаем несколько секретов
 	secret1 := &domain.Secret{
 		ID:            uuid.New().String(),
 		UserID:        userID,
@@ -371,12 +346,10 @@ func TestMemoryStorage_GetUserSecretsVersion(t *testing.T) {
 	err = storage.SecretRepository().Create(ctx, secret2)
 	require.NoError(t, err)
 
-	// GetUserSecretsVersion должен вернуть максимальную версию
 	version, err := storage.SecretRepository().GetUserSecretsVersion(ctx, userID)
 	require.NoError(t, err)
 	assert.Equal(t, int64(3), version)
 
-	// После soft delete всех секретов версия может быть 0
 	err = storage.SecretRepository().SoftDelete(ctx, secret1.ID, userID)
 	require.NoError(t, err)
 
@@ -385,7 +358,6 @@ func TestMemoryStorage_GetUserSecretsVersion(t *testing.T) {
 
 	versionAfterDelete, err := storage.SecretRepository().GetUserSecretsVersion(ctx, userID)
 	require.NoError(t, err)
-	// GetUserSecretsVersion может вернуть 0 или максимальную версию среди soft deleted
-	// зависит от реализации - давайте просто проверим что не паникует
+
 	assert.True(t, versionAfterDelete >= 0)
 }
