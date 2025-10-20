@@ -183,8 +183,8 @@ func (r *secretRepository) Update(ctx context.Context, secret *domain.Secret) er
 	query := `
 		UPDATE secrets 
 		SET type = $1, name = $2, encrypted_data = $3, encrypted_meta = $4, 
-		    version = $5, updated_at = $6, is_deleted = $7
-		WHERE id = $8 AND user_id = $9 AND version = $10
+		    version = version + 1, updated_at = $5, is_deleted = $6
+		WHERE id = $7 AND user_id = $8 AND version = $9
 	`
 
 	result, err := r.db.Exec(ctx, query,
@@ -192,7 +192,6 @@ func (r *secretRepository) Update(ctx context.Context, secret *domain.Secret) er
 		secret.Name,
 		secret.EncryptedData,
 		secret.EncryptedMeta,
-		secret.Version+1,
 		time.Now(),
 		secret.IsDeleted,
 		secret.ID,
@@ -205,7 +204,6 @@ func (r *secretRepository) Update(ctx context.Context, secret *domain.Secret) er
 	}
 
 	if result.RowsAffected() == 0 {
-		// Проверяем, существует ли секрет
 		existing, err := r.GetByID(ctx, secret.ID, secret.UserID)
 		if err != nil {
 			return interfaces.ErrSecretNotFound

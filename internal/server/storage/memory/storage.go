@@ -11,11 +11,9 @@ import (
 
 // memoryStorage реализует Storage в памяти
 type memoryStorage struct {
-	mu      sync.RWMutex
-	users   map[string]*domain.User
-	secrets map[string]*domain.Secret // key: userID_secretID
-
-	// Встроенные репозитории
+	mu         sync.RWMutex
+	users      map[string]*domain.User
+	secrets    map[string]*domain.Secret // key: userID_secretID
 	userRepo   *memoryUserRepository
 	secretRepo *memorySecretRepository
 }
@@ -82,12 +80,9 @@ func (s *memoryStorage) Close() error {
 	return nil
 }
 
-// Ping всегда возвращает nil для in-memory
 func (s *memoryStorage) Ping(ctx context.Context) error {
 	return nil
 }
-
-// UserRepository методы
 
 func (r *memoryUserRepository) Create(ctx context.Context, user *domain.User) error {
 	r.storage.mu.Lock()
@@ -157,8 +152,6 @@ func (r *memoryUserRepository) Delete(ctx context.Context, id string) error {
 	return nil
 }
 
-// SecretRepository методы
-
 func (r *memorySecretRepository) Create(ctx context.Context, secret *domain.Secret) error {
 	r.storage.mu.Lock()
 	defer r.storage.mu.Unlock()
@@ -220,7 +213,7 @@ func (r *memorySecretRepository) Update(ctx context.Context, secret *domain.Secr
 		return interfaces.ErrVersionConflict
 	}
 
-	secret.Version++
+	secret.Version = existing.Version + 1
 	secret.UpdatedAt = time.Now()
 	r.storage.secrets[key] = secret
 	return nil
@@ -278,15 +271,11 @@ func (r *memorySecretRepository) GetChangedSecrets(ctx context.Context, userID s
 	var secrets []*domain.Secret
 	for key, secret := range r.storage.secrets {
 		if r.storage.extractUserID(key) == userID && secret.Version >= lastSyncVersion {
-			// Включаем секреты с версией >= lastSyncVersion
-			// Это позволяет клиенту пересинхронизировать с определенной версии
 			secrets = append(secrets, secret)
 		}
 	}
 	return secrets, nil
 }
-
-// Вспомогательные методы (приватные для memoryStorage)
 
 func (s *memoryStorage) secretKey(userID, secretID string) string {
 	return userID + "_" + secretID

@@ -3,6 +3,8 @@ package domain
 import (
 	"time"
 
+	"github.com/google/uuid"
+
 	gophkeeper_v1 "github.com/alisaviation/GophKeeper/internal/server/transport/grpc"
 )
 
@@ -109,4 +111,14 @@ func SecretTypeFromProto(pb gophkeeper_v1.SecretType) SecretType {
 	default:
 		return SecretTypeUnspecified
 	}
+}
+
+// GenerateID генерирует уникальный ID
+func GenerateID() string {
+	return uuid.New().String()
+}
+
+// Now возвращает текущее время
+func Now() time.Time {
+	return time.Now()
 }

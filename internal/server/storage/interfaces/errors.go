@@ -10,4 +10,5 @@ var (
 	ErrConcurrentModification = errors.New("concurrent modification detected")
 	ErrInvalidData            = errors.New("invalid data")
 	ErrTransactionFailed      = errors.New("transaction failed")
+	ErrInvalidCredentials     = errors.New("invalid credentials")
 )
