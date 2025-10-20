@@ -42,7 +42,7 @@ func (r *userRepository) Create(ctx context.Context, user *domain.User) error {
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-			return interfaces.ErrUserAlreadyExists
+			return domain.ErrUserAlreadyExists
 		}
 		return fmt.Errorf("failed to create user: %w", err)
 	}
@@ -69,7 +69,7 @@ func (r *userRepository) GetByLogin(ctx context.Context, login string) (*domain.
 
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, interfaces.ErrUserNotFound
+			return nil, domain.ErrUserNotFound
 		}
 		return nil, fmt.Errorf("failed to get user by login: %w", err)
 	}
@@ -96,7 +96,7 @@ func (r *userRepository) GetByID(ctx context.Context, id string) (*domain.User, 
 
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, interfaces.ErrUserNotFound
+			return nil, domain.ErrUserNotFound
 		}
 		return nil, fmt.Errorf("failed to get user by id: %w", err)
 	}
@@ -122,13 +122,13 @@ func (r *userRepository) Update(ctx context.Context, user *domain.User) error {
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-			return interfaces.ErrUserAlreadyExists
+			return domain.ErrUserAlreadyExists
 		}
 		return fmt.Errorf("failed to update user: %w", err)
 	}
 
 	if result.RowsAffected() == 0 {
-		return interfaces.ErrUserNotFound
+		return domain.ErrUserNotFound
 	}
 
 	return nil
@@ -144,7 +144,7 @@ func (r *userRepository) Delete(ctx context.Context, id string) error {
 	}
 
 	if result.RowsAffected() == 0 {
-		return interfaces.ErrUserNotFound
+		return domain.ErrUserNotFound
 	}
 
 	return nil

@@ -90,7 +90,7 @@ func (r *memoryUserRepository) Create(ctx context.Context, user *domain.User) er
 
 	for _, u := range r.storage.users {
 		if u.Login == user.Login {
-			return interfaces.ErrUserAlreadyExists
+			return domain.ErrUserAlreadyExists
 		}
 	}
 
@@ -107,7 +107,7 @@ func (r *memoryUserRepository) GetByLogin(ctx context.Context, login string) (*d
 			return user, nil
 		}
 	}
-	return nil, interfaces.ErrUserNotFound
+	return nil, domain.ErrUserNotFound
 }
 
 func (r *memoryUserRepository) GetByID(ctx context.Context, id string) (*domain.User, error) {
@@ -116,7 +116,7 @@ func (r *memoryUserRepository) GetByID(ctx context.Context, id string) (*domain.
 
 	user, exists := r.storage.users[id]
 	if !exists {
-		return nil, interfaces.ErrUserNotFound
+		return nil, domain.ErrUserNotFound
 	}
 	return user, nil
 }
@@ -125,14 +125,14 @@ func (r *memoryUserRepository) Update(ctx context.Context, user *domain.User) er
 	r.storage.mu.Lock()
 	defer r.storage.mu.Unlock()
 
-	if _, exists := r.storage.users[user.ID]; !exists {
-		return interfaces.ErrUserNotFound
+	_, exists := r.storage.users[user.ID]
+	if !exists {
+		return domain.ErrUserNotFound
 	}
 
-	// Проверяем уникальность логина
 	for id, u := range r.storage.users {
 		if u.Login == user.Login && id != user.ID {
-			return interfaces.ErrUserAlreadyExists
+			return domain.ErrUserAlreadyExists
 		}
 	}
 
@@ -144,8 +144,9 @@ func (r *memoryUserRepository) Delete(ctx context.Context, id string) error {
 	r.storage.mu.Lock()
 	defer r.storage.mu.Unlock()
 
-	if _, exists := r.storage.users[id]; !exists {
-		return interfaces.ErrUserNotFound
+	_, exists := r.storage.users[id]
+	if !exists {
+		return domain.ErrUserNotFound
 	}
 
 	delete(r.storage.users, id)
@@ -168,7 +169,7 @@ func (r *memorySecretRepository) GetByID(ctx context.Context, id, userID string)
 	key := r.storage.secretKey(userID, id)
 	secret, exists := r.storage.secrets[key]
 	if !exists || secret.IsDeleted {
-		return nil, interfaces.ErrSecretNotFound
+		return nil, domain.ErrSecretNotFound
 	}
 	return secret, nil
 }
@@ -206,11 +207,11 @@ func (r *memorySecretRepository) Update(ctx context.Context, secret *domain.Secr
 	key := r.storage.secretKey(secret.UserID, secret.ID)
 	existing, exists := r.storage.secrets[key]
 	if !exists {
-		return interfaces.ErrSecretNotFound
+		return domain.ErrSecretNotFound
 	}
 
 	if existing.Version != secret.Version {
-		return interfaces.ErrVersionConflict
+		return domain.ErrVersionConflict
 	}
 
 	secret.Version = existing.Version + 1
@@ -224,8 +225,9 @@ func (r *memorySecretRepository) Delete(ctx context.Context, id, userID string) 
 	defer r.storage.mu.Unlock()
 
 	key := r.storage.secretKey(userID, id)
-	if _, exists := r.storage.secrets[key]; !exists {
-		return interfaces.ErrSecretNotFound
+	_, exists := r.storage.secrets[key]
+	if !exists {
+		return domain.ErrSecretNotFound
 	}
 
 	delete(r.storage.secrets, key)
@@ -239,7 +241,7 @@ func (r *memorySecretRepository) SoftDelete(ctx context.Context, id, userID stri
 	key := r.storage.secretKey(userID, id)
 	secret, exists := r.storage.secrets[key]
 	if !exists || secret.IsDeleted {
-		return interfaces.ErrSecretNotFound
+		return domain.ErrSecretNotFound
 	}
 
 	secret.IsDeleted = true

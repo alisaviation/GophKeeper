@@ -75,7 +75,7 @@ func (r *secretRepository) GetByID(ctx context.Context, id, userID string) (*dom
 
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, interfaces.ErrSecretNotFound
+			return nil, domain.ErrSecretNotFound
 		}
 		return nil, fmt.Errorf("failed to get secret by id: %w", err)
 	}
@@ -206,12 +206,12 @@ func (r *secretRepository) Update(ctx context.Context, secret *domain.Secret) er
 	if result.RowsAffected() == 0 {
 		existing, err := r.GetByID(ctx, secret.ID, secret.UserID)
 		if err != nil {
-			return interfaces.ErrSecretNotFound
+			return domain.ErrSecretNotFound
 		}
 		if existing.Version != secret.Version {
-			return interfaces.ErrVersionConflict
+			return domain.ErrVersionConflict
 		}
-		return interfaces.ErrSecretNotFound
+		return domain.ErrSecretNotFound
 	}
 
 	return nil
@@ -227,7 +227,7 @@ func (r *secretRepository) Delete(ctx context.Context, id, userID string) error 
 	}
 
 	if result.RowsAffected() == 0 {
-		return interfaces.ErrSecretNotFound
+		return domain.ErrSecretNotFound
 	}
 
 	return nil
@@ -247,7 +247,7 @@ func (r *secretRepository) SoftDelete(ctx context.Context, id, userID string) er
 	}
 
 	if result.RowsAffected() == 0 {
-		return interfaces.ErrSecretNotFound
+		return domain.ErrSecretNotFound
 	}
 
 	return nil
