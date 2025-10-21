@@ -26,7 +26,11 @@ func NewDataService(secrets interfaces.SecretRepository, crypto crypto.Encryptor
 
 // Sync синхронизирует данные между клиентом и сервером
 func (s *DataService) Sync(ctx context.Context, userID string, clientSecrets []*domain.Secret, lastSyncVersion int64) (*SyncResult, error) {
-
+	for _, secret := range clientSecrets {
+		if secret.UserID != userID {
+			return nil, domain.ErrAccessDenied
+		}
+	}
 	serverVersion, err := s.secrets.GetUserSecretsVersion(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get server version: %w", err)
@@ -55,7 +59,7 @@ func (s *DataService) Sync(ctx context.Context, userID string, clientSecrets []*
 type SyncResult struct {
 	CurrentVersion int64
 	ServerSecrets  []*domain.Secret
-	Conflicts      []string // ID конфликтных секретов
+	Conflicts      []string
 }
 
 // GetSecret возвращает секрет по ID
