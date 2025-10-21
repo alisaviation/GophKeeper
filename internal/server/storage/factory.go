@@ -6,6 +6,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/alisaviation/GophKeeper/internal/config"
 	"github.com/alisaviation/GophKeeper/internal/server/storage/interfaces"
 	"github.com/alisaviation/GophKeeper/internal/server/storage/memory"
 	"github.com/alisaviation/GophKeeper/internal/server/storage/postgres"
@@ -19,29 +20,32 @@ const (
 	TypeMemory     Type = "memory"
 )
 
+// RunMigrations применяет миграции к базе данных
+func RunMigrations(dbConfig config.DatabaseConfig) error {
+	return postgres.RunMigrations(dbConfig)
+}
+
 // Config представляет конфигурацию хранилища
 type Config struct {
-	Type     Type             `yaml:"type"`
-	Postgres *postgres.Config `yaml:"postgres,omitempty"`
+	Type     Type
+	Database config.DatabaseConfig
 }
 
 // NewStorage создает новое хранилище в зависимости от конфигурации
 func NewStorage(config Config) (interfaces.Storage, error) {
 	switch config.Type {
 	case TypePostgreSQL:
-		if config.Postgres == nil {
-			return nil, fmt.Errorf("postgres config is required for postgres storage type")
-		}
+		dsn := config.Database.DSN()
 
-		poolConfig, err := pgxpool.ParseConfig(config.Postgres.DSN())
+		poolConfig, err := pgxpool.ParseConfig(dsn)
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse postgres DSN: %w", err)
+			return nil, fmt.Errorf("failed to parse DSN: %w", err)
 		}
 
-		poolConfig.MaxConns = int32(config.Postgres.MaxOpenConns)
-		poolConfig.MinConns = int32(config.Postgres.MaxIdleConns)
-		poolConfig.MaxConnLifetime = config.Postgres.ConnMaxLifetime
-		poolConfig.MaxConnIdleTime = config.Postgres.ConnMaxIdleTime
+		poolConfig.MaxConns = int32(config.Database.MaxOpenConns)
+		poolConfig.MinConns = int32(config.Database.MaxIdleConns)
+		poolConfig.MaxConnLifetime = config.Database.ConnMaxLifetime
+		poolConfig.MaxConnIdleTime = config.Database.ConnMaxIdleTime
 
 		db, err := pgxpool.NewWithConfig(context.Background(), poolConfig)
 		if err != nil {

@@ -7,10 +7,17 @@ import (
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
+
+	"github.com/alisaviation/GophKeeper/internal/config"
 )
 
-// RunMigrations применяет миграции к базе данных
-func RunMigrations(dsn string) error {
+// RunMigrations применяет миграции к базе данных используя DatabaseConfig
+func RunMigrations(dbConfig config.DatabaseConfig) error {
+	dsn := dbConfig.DSN()
+	return runMigrationsWithDSN(dsn)
+}
+
+func runMigrationsWithDSN(dsn string) error {
 	workDir, _ := os.Getwd()
 	migrationsPath := fmt.Sprintf("file://%s/migrations", workDir)
 

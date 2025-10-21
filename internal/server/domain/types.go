@@ -39,11 +39,11 @@ const (
 	BankCard              SecretType = "bank_card"
 )
 
-type SyncState struct {
-	UserID         string
-	CurrentVersion int64
-	LastSyncAt     time.Time
-}
+//type SyncState struct {
+//	UserID         string
+//	CurrentVersion int64
+//	LastSyncAt     time.Time
+//}
 
 type SecretVersion struct {
 	SecretID  string
