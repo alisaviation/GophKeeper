@@ -82,24 +82,22 @@ func SetClientConfig() ClientConfig {
 	var config ClientConfig
 	var configFile string
 
-	flag.StringVar(&configFile, "c", "", "Path to config file")
-	flag.StringVar(&configFile, "config", "", "Path to config file")
-	serverAddress := flag.String("a", "localhost:8081", "Server address")
-	storagePath := flag.String("s", "", "Storage path")
-	autoSync := flag.Bool("auto-sync", true, "Enable auto sync")
+	//flag.StringVar(&configFile, "c", "", "Path to config file")
+	//flag.StringVar(&configFile, "config", "", "Path to config file")
+	//serverAddress := flag.String("a", "localhost:8080", "Server address")
+	//storagePath := flag.String("s", "", "Storage path")
+	//autoSync := flag.Bool("auto-sync", true, "Enable auto sync")
 
-	flag.Parse()
+	//flag.Parse()
 
-	// Default configuration
 	defaultConfig := ClientConfig{
-		ServerAddress: "localhost:8081",
+		ServerAddress: "localhost:8080",
 		StoragePath:   getDefaultStoragePath(),
 		AutoSync:      true,
 	}
 
 	config = defaultConfig
 
-	// Load from config file if provided
 	if configFile != "" {
 		var fileConfig FileConfig
 		if err := loadConfigFromFile(configFile, &fileConfig); err != nil {
@@ -109,17 +107,14 @@ func SetClientConfig() ClientConfig {
 		}
 	}
 
-	// Apply command line flags
-	config.ServerAddress = *serverAddress
-	if *storagePath != "" {
-		config.StoragePath = *storagePath
-	}
-	config.AutoSync = *autoSync
+	//config.ServerAddress = *serverAddress
+	//if *storagePath != "" {
+	//	config.StoragePath = *storagePath
+	//}
+	//config.AutoSync = *autoSync
 
-	// Apply environment variables
 	applyEnvToClient(&config)
 
-	// Apply config file from environment if not already loaded
 	if envConfigFile, exists := os.LookupEnv("CONFIG"); exists && configFile == "" {
 		var fileConfig FileConfig
 		if err := loadConfigFromFile(envConfigFile, &fileConfig); err == nil {
@@ -139,7 +134,6 @@ func SetServerConfig() ServerConfig {
 	flag.StringVar(&configFile, "config", "", "Path to config file")
 	grpcPort := flag.Int("p", 8080, "gRPC server port")
 
-	// Database flags
 	dbHost := flag.String("db-host", "localhost", "Database host")
 	dbPort := flag.Int("db-port", 5432, "Database port")
 	dbUser := flag.String("db-user", "postgres", "Database user")
@@ -149,17 +143,14 @@ func SetServerConfig() ServerConfig {
 	dbMaxConns := flag.Int("db-max-conns", 25, "Database max connections")
 	dbMaxIdleTime := flag.String("db-max-idle-time", "1m", "Database max idle time")
 
-	// JWT flags
 	jwtSecret := flag.String("jwt-secret", "default-jwt-secret-key-change-in-production", "JWT secret")
 	jwtAccessExpiry := flag.String("jwt-access-expiry", "15m", "JWT access token expiry")
 	jwtRefreshExpiry := flag.String("jwt-refresh-expiry", "168h", "JWT refresh token expiry")
 
-	// Encryption flags
 	encryptionKey := flag.String("encryption-key", "", "Encryption key")
 
 	flag.Parse()
 
-	// Default configuration
 	defaultConfig := ServerConfig{
 		GRPCPort: 8080,
 		Database: DatabaseConfig{
@@ -187,7 +178,6 @@ func SetServerConfig() ServerConfig {
 
 	config = defaultConfig
 
-	// Load from config file if provided
 	if configFile != "" {
 		var fileConfig FileConfig
 		if err := loadConfigFromFile(configFile, &fileConfig); err != nil {
@@ -197,7 +187,6 @@ func SetServerConfig() ServerConfig {
 		}
 	}
 
-	// Apply command line flags
 	config.GRPCPort = *grpcPort
 	config.Database.Host = *dbHost
 	config.Database.Port = *dbPort
@@ -220,10 +209,8 @@ func SetServerConfig() ServerConfig {
 
 	config.Encryption.Key = *encryptionKey
 
-	// Apply environment variables
 	applyEnvToServer(&config)
 
-	// Apply config file from environment if not already loaded
 	if envConfigFile, exists := os.LookupEnv("CONFIG"); exists && configFile == "" {
 		var fileConfig FileConfig
 		if err := loadConfigFromFile(envConfigFile, &fileConfig); err == nil {
@@ -233,8 +220,6 @@ func SetServerConfig() ServerConfig {
 
 	return config
 }
-
-// Helper functions
 
 func getDefaultStoragePath() string {
 	configDir, err := os.UserConfigDir()
@@ -263,7 +248,6 @@ func applyFileConfigToClient(config *ClientConfig, fileConfig FileConfig) {
 	if fileConfig.StoragePath != "" {
 		config.StoragePath = fileConfig.StoragePath
 	}
-	// AutoSync doesn't have a "not set" state, so we always apply it from file if present
 	config.AutoSync = fileConfig.AutoSync
 }
 
@@ -275,7 +259,6 @@ func applyFileConfigToServer(config *ServerConfig, fileConfig FileConfig) {
 		config.ServerAddress = fileConfig.ServerAddress
 	}
 
-	// Database configuration
 	if fileConfig.DatabaseHost != "" {
 		config.Database.Host = fileConfig.DatabaseHost
 	}
@@ -304,7 +287,6 @@ func applyFileConfigToServer(config *ServerConfig, fileConfig FileConfig) {
 		config.Database.ConnMaxIdleTime = parseDuration(fileConfig.DatabaseMaxIdleTime, config.Database.ConnMaxIdleTime)
 	}
 
-	// JWT configuration
 	if fileConfig.JWTSecret != "" {
 		config.JWT.Secret = fileConfig.JWTSecret
 
@@ -316,7 +298,6 @@ func applyFileConfigToServer(config *ServerConfig, fileConfig FileConfig) {
 		config.JWT.RefreshExpiry = parseDuration(fileConfig.JWTRefreshExpiry, config.JWT.RefreshExpiry)
 	}
 
-	// Encryption configuration
 	if fileConfig.EncryptionKey != "" {
 		config.Encryption.Key = fileConfig.EncryptionKey
 	}
@@ -346,7 +327,6 @@ func applyEnvToServer(config *ServerConfig) {
 		config.ServerAddress = envServerAddress
 	}
 
-	// Database environment variables
 	if envDBHost, exists := os.LookupEnv("DB_HOST"); exists {
 		config.Database.Host = envDBHost
 	}
@@ -376,7 +356,6 @@ func applyEnvToServer(config *ServerConfig) {
 		config.Database.ConnMaxIdleTime = parseDuration(envDBMaxIdleTime, config.Database.ConnMaxIdleTime)
 	}
 
-	// JWT environment variables
 	if envJWTSecret, exists := os.LookupEnv("JWT_SECRET"); exists {
 		config.JWT.Secret = envJWTSecret
 	}
@@ -387,7 +366,6 @@ func applyEnvToServer(config *ServerConfig) {
 		config.JWT.RefreshExpiry = parseDuration(envJWTRefreshExpiry, config.JWT.RefreshExpiry)
 	}
 
-	// Encryption environment variables
 	if envEncryptionKey, exists := os.LookupEnv("ENCRYPTION_KEY"); exists {
 		config.Encryption.Key = envEncryptionKey
 	}
@@ -410,7 +388,7 @@ func loadConfigFromFile(filePath string, config *FileConfig) error {
 // DefaultClientConfig returns default client configuration
 func DefaultClientConfig() ClientConfig {
 	return ClientConfig{
-		ServerAddress: "localhost:8090",
+		ServerAddress: "localhost:8080",
 		StoragePath:   getDefaultStoragePath(),
 		AutoSync:      true,
 	}

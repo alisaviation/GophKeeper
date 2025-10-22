@@ -13,6 +13,7 @@ const (
 	SecretTypeLoginPassword SecretType = "login_password"
 	SecretTypeText          SecretType = "text"
 	SecretTypeBankCard      SecretType = "bank_card"
+	SecretTypeBinary        SecretType = "binary_data"
 )
 
 // SecretData локальное представление секрета
@@ -50,6 +51,12 @@ type BankCardData struct {
 	ExpiryDate string `json:"expiry_date"`
 	CVV        string `json:"cvv"`
 	BankName   string `json:"bank_name,omitempty"`
+}
+
+type BinaryData struct {
+	Data        []byte `json:"data"`
+	Description string `json:"description,omitempty"`
+	FileName    string `json:"file_name"`
 }
 
 // Session сессия пользователя

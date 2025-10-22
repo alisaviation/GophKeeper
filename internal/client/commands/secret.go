@@ -3,6 +3,8 @@ package commands
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
 
@@ -173,14 +175,47 @@ func NewSecretsCommand(clientApp *app.Client) *cobra.Command {
 				fmt.Printf("Successfully marked secret %s for deletion\n", id)
 			},
 		},
+		&cobra.Command{
+			Use:   "create-binary [name] [file-path]",
+			Short: "Create binary secret from file",
+			Args:  cobra.ExactArgs(2),
+			Run: func(cmd *cobra.Command, args []string) {
+				name, filePath := args[0], args[1]
+
+				data, err := os.ReadFile(filePath)
+				if err != nil {
+					fmt.Printf("Failed to read file: %v\n", err)
+					return
+				}
+
+				description, _ := cmd.Flags().GetString("description")
+
+				secretData := &domain.SecretData{
+					Type: domain.SecretTypeBinary,
+					Name: name,
+					Data: domain.BinaryData{
+						Data:        data,
+						Description: description,
+						FileName:    filepath.Base(filePath),
+					},
+				}
+
+				ctx := context.Background()
+				id, err := clientApp.CreateSecret(ctx, secretData)
+				if err != nil {
+					fmt.Printf("Failed to create secret: %v\n", err)
+					return
+				}
+
+				fmt.Printf("Successfully created binary secret with ID: %s\n", id)
+			},
+		},
 	)
 
-	// Флаги для create-login
 	createLoginCmd := secretsCmd.Commands()[2]
 	createLoginCmd.Flags().String("website", "", "Website URL")
 	createLoginCmd.Flags().String("notes", "", "Additional notes")
 
-	// Флаги для create-card
 	createCardCmd := secretsCmd.Commands()[4]
 	createCardCmd.Flags().String("bank", "", "Bank name")
 

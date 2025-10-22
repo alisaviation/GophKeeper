@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"runtime"
 
 	"github.com/alisaviation/GophKeeper/internal/config"
 	"github.com/alisaviation/GophKeeper/internal/crypto"
@@ -10,8 +11,15 @@ import (
 	"github.com/alisaviation/GophKeeper/internal/server/transport"
 )
 
+var (
+	version = "dev"
+	commit  = "none"
+	date    = "unknown"
+)
+
 func main() {
 	cfg := config.SetServerConfig()
+	log.Printf("Starting GophKeeper Server %s (commit: %s, built: %s, go: %s)", version, commit, date, runtime.Version())
 
 	if err := storage.RunMigrations(cfg.Database); err != nil {
 		log.Fatal("Failed to run migrations:", err)
@@ -52,7 +60,7 @@ func main() {
 	grpcServer := transport.NewServer(authService, dataService, grpcConfig)
 
 	log.Printf("Starting gRPC server on port %d", grpcConfig.Port)
-	if err := grpcServer.Start(); err != nil {
+	if err = grpcServer.Start(); err != nil {
 		log.Fatal("Failed to start gRPC server:", err)
 	}
 }

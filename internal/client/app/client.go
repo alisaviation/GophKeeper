@@ -1,4 +1,3 @@
-// internal/client/app/client.go
 package app
 
 import (
@@ -53,13 +52,11 @@ func (c *Client) Register(ctx context.Context, login, password string) (string, 
 		return "", fmt.Errorf("registration failed: %w", err)
 	}
 
-	// Генерируем ключ шифрования
 	encryptionKey, err := generateEncryptionKey()
 	if err != nil {
 		return "", fmt.Errorf("failed to generate encryption key: %w", err)
 	}
 
-	// Сохраняем начальную сессию
 	session := &domain.Session{
 		UserID:        userID,
 		Login:         login,
@@ -81,10 +78,8 @@ func (c *Client) Login(ctx context.Context, login, password string) error {
 		return fmt.Errorf("login failed: %w", err)
 	}
 
-	// Получаем или создаем сессию
 	session, err := c.storage.GetSession()
 	if err != nil || session == nil {
-		// Создаем новую сессию
 		encryptionKey, err := generateEncryptionKey()
 		if err != nil {
 			return fmt.Errorf("failed to generate encryption key: %w", err)
@@ -97,7 +92,6 @@ func (c *Client) Login(ctx context.Context, login, password string) error {
 		}
 	}
 
-	// Обновляем токены
 	session.AccessToken = accessToken
 	session.RefreshToken = refreshToken
 	session.LastSync = time.Now().Unix()
@@ -106,7 +100,6 @@ func (c *Client) Login(ctx context.Context, login, password string) error {
 		return fmt.Errorf("failed to save session: %w", err)
 	}
 
-	// Устанавливаем токен в транспорт
 	c.transport.SetToken(accessToken)
 
 	return nil
@@ -119,12 +112,10 @@ func (c *Client) Logout() error {
 		return fmt.Errorf("no active session: %w", err)
 	}
 
-	// Вызываем logout на сервере
 	if err := c.transport.Logout(context.Background(), session.RefreshToken); err != nil {
 		fmt.Printf("Warning: logout call failed: %v\n", err)
 	}
 
-	// Удаляем локальную сессию
 	if err := c.storage.DeleteSession(); err != nil {
 		return fmt.Errorf("failed to delete session: %w", err)
 	}
@@ -140,20 +131,17 @@ func (c *Client) GetSession() (*domain.Session, error) {
 
 // CreateSecret создает новый секрет
 func (c *Client) CreateSecret(ctx context.Context, secretData *domain.SecretData) (string, error) {
-	// Проверяем аутентификацию
 	session, err := c.ensureAuthenticated(ctx)
 	if err != nil {
 		return "", err
 	}
 
-	// Устанавливаем метаданные
 	secretData.ID = domain.GenerateID()
 	secretData.UserID = session.UserID
 	secretData.CreatedAt = time.Now()
 	secretData.UpdatedAt = time.Now()
 	secretData.IsDirty = true
 
-	// Сохраняем локально
 	if err := c.storage.SaveSecret(secretData); err != nil {
 		return "", fmt.Errorf("failed to save secret locally: %w", err)
 	}
@@ -203,7 +191,6 @@ func (c *Client) ListSecrets(ctx context.Context, filterType string) ([]*SecretD
 
 // DeleteSecret удаляет секрет
 func (c *Client) DeleteSecret(ctx context.Context, id string) error {
-	// Помечаем секрет как удаленный локально
 	secret, err := c.storage.GetSecret(id)
 	if err != nil {
 		return fmt.Errorf("failed to get secret: %w", err)
@@ -227,13 +214,11 @@ func (c *Client) Sync(ctx context.Context, force bool, resolveStrategy string) (
 		return nil, err
 	}
 
-	// Получаем локальные секреты
 	localSecrets, err := c.storage.GetSecrets()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get local secrets: %w", err)
 	}
 
-	// Подготавливаем секреты для отправки
 	var secretsToSync []*pb.Secret
 	for _, localSecret := range localSecrets {
 		if localSecret.IsDirty || force {
@@ -245,13 +230,11 @@ func (c *Client) Sync(ctx context.Context, force bool, resolveStrategy string) (
 		}
 	}
 
-	// Выполняем синхронизацию
 	syncResponse, err := c.transport.Sync(ctx, session.UserID, session.LastSyncVersion, secretsToSync)
 	if err != nil {
 		return nil, fmt.Errorf("sync failed: %w", err)
 	}
 
-	// Обрабатываем полученные секреты
 	downloaded := 0
 	var conflicts []string
 
@@ -262,14 +245,12 @@ func (c *Client) Sync(ctx context.Context, force bool, resolveStrategy string) (
 			continue
 		}
 
-		// Проверяем конфликты
 		localSecret, err := c.storage.GetSecret(decryptedSecret.ID)
 		if err == nil && localSecret.Version != decryptedSecret.Version {
 			conflicts = append(conflicts, fmt.Sprintf("%s: version conflict (local=%d, server=%d)",
 				decryptedSecret.ID, localSecret.Version, decryptedSecret.Version))
 
 			if resolveStrategy == "server" {
-				// Используем версию с сервера
 				if err := c.storage.SaveSecret(decryptedSecret); err != nil {
 					fmt.Printf("Warning: failed to save secret %s: %v\n", decryptedSecret.ID, err)
 				} else {
@@ -277,7 +258,6 @@ func (c *Client) Sync(ctx context.Context, force bool, resolveStrategy string) (
 				}
 			}
 		} else {
-			// Сохраняем секрет
 			if err := c.storage.SaveSecret(decryptedSecret); err != nil {
 				fmt.Printf("Warning: failed to save secret %s: %v\n", decryptedSecret.ID, err)
 			} else {
@@ -286,7 +266,6 @@ func (c *Client) Sync(ctx context.Context, force bool, resolveStrategy string) (
 		}
 	}
 
-	// Обновляем информацию о сессии
 	session.LastSync = time.Now().Unix()
 	session.LastSyncVersion = syncResponse.CurrentVersion
 	if err := c.storage.SaveSession(session); err != nil {
@@ -322,25 +301,21 @@ func (c *Client) encryptSecret(secret *domain.SecretData) (*pb.Secret, error) {
 		return nil, fmt.Errorf("failed to get session: %w", err)
 	}
 
-	// Создаем шифровальщик с ключом из сессии
 	encryptor, err := crypto.NewAESGCMEncryptor(session.EncryptionKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create encryptor: %w", err)
 	}
 
-	// Сериализуем данные
 	dataBytes, err := json.Marshal(secret.Data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to serialize data: %w", err)
 	}
 
-	// Шифруем данные
 	encryptedData, err := encryptor.Encrypt(dataBytes)
 	if err != nil {
 		return nil, fmt.Errorf("failed to encrypt data: %w", err)
 	}
 
-	// Создаем protobuf секрет
 	pbSecret := &pb.Secret{
 		Id:            secret.ID,
 		UserId:        secret.UserID,
@@ -363,19 +338,16 @@ func (c *Client) decryptSecret(pbSecret *pb.Secret) (*domain.SecretData, error) 
 		return nil, fmt.Errorf("failed to get session: %w", err)
 	}
 
-	// Создаем шифровальщик с ключом из сессии
 	encryptor, err := crypto.NewAESGCMEncryptor(session.EncryptionKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create encryptor: %w", err)
 	}
 
-	// Расшифровываем данные
 	decryptedData, err := encryptor.Decrypt(pbSecret.EncryptedData)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decrypt data: %w", err)
 	}
 
-	// Определяем тип данных и десериализуем
 	var data interface{}
 	switch mapSecretTypeFromProto(pbSecret.Type) {
 	case domain.SecretTypeLoginPassword:
@@ -416,9 +388,8 @@ func (c *Client) decryptSecret(pbSecret *pb.Secret) (*domain.SecretData, error) 
 	return secret, nil
 }
 
-// Вспомогательные функции
 func generateEncryptionKey() ([]byte, error) {
-	key := make([]byte, 32) // AES-256
+	key := make([]byte, 32)
 	_, err := rand.Read(key)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate encryption key: %w", err)
@@ -448,6 +419,6 @@ func mapSecretTypeFromProto(pbType pb.SecretType) domain.SecretType {
 	case pb.SecretType_BANK_CARD:
 		return domain.SecretTypeBankCard
 	default:
-		return domain.SecretTypeLoginPassword // fallback
+		return domain.SecretTypeLoginPassword
 	}
 }

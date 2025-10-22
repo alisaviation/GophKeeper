@@ -60,7 +60,6 @@ func (s *Server) Start() error {
 		return fmt.Errorf("failed to listen: %w", err)
 	}
 
-	fmt.Printf("gRPC server listening on :%d\n", s.config.Port)
 	return s.server.Serve(lis)
 }
 

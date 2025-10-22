@@ -103,7 +103,6 @@ func readPassword(prompt string) string {
 	password, err := term.ReadPassword(int(syscall.Stdin))
 	fmt.Println()
 	if err != nil {
-		// Fallback к обычному вводу
 		reader := bufio.NewReader(os.Stdin)
 		password, _ := reader.ReadString('\n')
 		return strings.TrimSpace(password)

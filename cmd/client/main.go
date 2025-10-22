@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"runtime"
 
 	"github.com/spf13/cobra"
 
@@ -17,21 +18,24 @@ var (
 	version = "dev"
 	commit  = "none"
 	date    = "unknown"
+	builtBy = "unknown"
 )
 
 func main() {
-	cfg := config.SetClientConfig()
 
-	clientApp, err := initApp(cfg)
+	rootCmd := &cobra.Command{
+		Use:   "gophkeeper",
+		Short: "GophKeeper - Secure password manager",
+		Version: fmt.Sprintf("%s (commit: %s, built: %s, by: %s, go: %s)",
+			version, commit, date, builtBy, runtime.Version()),
+		Run: func(cmd *cobra.Command, args []string) {
+			cmd.Help()
+		},
+	}
+	clientApp, err := initApp()
 	if err != nil {
 		fmt.Printf("Failed to initialize app: %v\n", err)
 		os.Exit(1)
-	}
-
-	rootCmd := &cobra.Command{
-		Use:     "gophkeeper",
-		Short:   "GophKeeper - Secure password manager",
-		Version: fmt.Sprintf("%s (commit: %s, built: %s)", version, commit, date),
 	}
 
 	rootCmd.AddCommand(
@@ -47,7 +51,8 @@ func main() {
 	}
 }
 
-func initApp(cfg config.ClientConfig) (*app.Client, error) {
+func initApp() (*app.Client, error) {
+	cfg := config.SetClientConfig()
 	localStorage, err := storage.NewFileStorage(cfg.StoragePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to init local storage: %w", err)
