@@ -119,37 +119,10 @@ func (s *FileStorage) GetSecrets() ([]*domain.SecretData, error) {
 	return secrets, nil
 }
 
-// DeleteSecret удаляет секрет
-func (s *FileStorage) DeleteSecret(id string) error {
-	secrets, err := s.GetSecrets()
-	if err != nil {
-		return err
-	}
-
-	var filtered []*domain.SecretData
-	for _, secret := range secrets {
-		if secret.ID != id {
-			filtered = append(filtered, secret)
-		}
-	}
-
-	data, err := json.MarshalIndent(filtered, "", "  ")
-	if err != nil {
-		return err
-	}
-
-	return os.WriteFile(s.secretsPath(), data, 0600)
-}
-
-// Вспомогательные методы путей
 func (s *FileStorage) sessionPath() string {
 	return filepath.Join(s.basePath, "session.json")
 }
 
 func (s *FileStorage) secretsPath() string {
 	return filepath.Join(s.basePath, "secrets.json")
-}
-
-func (s *FileStorage) configPath() string {
-	return filepath.Join(s.basePath, "config.json")
 }

@@ -6,13 +6,13 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 
-	pb "github.com/alisaviation/GophKeeper/internal/server/transport/grpc"
+	grpc2 "github.com/alisaviation/GophKeeper/internal/generated/grpc"
 )
 
 // GRPCClient gRPC клиент для взаимодействия с сервером
 type GRPCClient struct {
-	authClient   pb.AuthServiceClient
-	secretClient pb.SecretServiceClient
+	authClient   grpc2.AuthServiceClient
+	secretClient grpc2.SecretServiceClient
 	conn         *grpc.ClientConn
 	token        string
 }
@@ -25,8 +25,8 @@ func NewGRPCClient(serverAddr string) (*GRPCClient, error) {
 	}
 
 	return &GRPCClient{
-		authClient:   pb.NewAuthServiceClient(conn),
-		secretClient: pb.NewSecretServiceClient(conn),
+		authClient:   grpc2.NewAuthServiceClient(conn),
+		secretClient: grpc2.NewSecretServiceClient(conn),
 		conn:         conn,
 	}, nil
 }
@@ -38,7 +38,7 @@ func (c *GRPCClient) SetToken(token string) {
 
 // Register регистрирует нового пользователя
 func (c *GRPCClient) Register(ctx context.Context, login, password string) (string, error) {
-	resp, err := c.authClient.Register(ctx, &pb.RegisterRequest{
+	resp, err := c.authClient.Register(ctx, &grpc2.RegisterRequest{
 		Login:    login,
 		Password: password,
 	})
@@ -50,7 +50,7 @@ func (c *GRPCClient) Register(ctx context.Context, login, password string) (stri
 
 // Login выполняет вход
 func (c *GRPCClient) Login(ctx context.Context, login, password string) (string, string, string, error) {
-	resp, err := c.authClient.Login(ctx, &pb.LoginRequest{
+	resp, err := c.authClient.Login(ctx, &grpc2.LoginRequest{
 		Login:    login,
 		Password: password,
 	})
@@ -62,7 +62,7 @@ func (c *GRPCClient) Login(ctx context.Context, login, password string) (string,
 
 // RefreshToken обновляет токены
 func (c *GRPCClient) RefreshToken(ctx context.Context, refreshToken string) (string, string, error) {
-	resp, err := c.authClient.RefreshToken(ctx, &pb.RefreshTokenRequest{
+	resp, err := c.authClient.RefreshToken(ctx, &grpc2.RefreshTokenRequest{
 		RefreshToken: refreshToken,
 	})
 	if err != nil {
@@ -73,16 +73,16 @@ func (c *GRPCClient) RefreshToken(ctx context.Context, refreshToken string) (str
 
 // Logout выполняет выход
 func (c *GRPCClient) Logout(ctx context.Context, refreshToken string) error {
-	_, err := c.authClient.Logout(ctx, &pb.LogoutRequest{
+	_, err := c.authClient.Logout(ctx, &grpc2.LogoutRequest{
 		RefreshToken: refreshToken,
 	})
 	return err
 }
 
 // Sync синхронизирует данные
-func (c *GRPCClient) Sync(ctx context.Context, userID string, lastSyncVersion int64, secrets []*pb.Secret) (*pb.SyncResponse, error) {
+func (c *GRPCClient) Sync(ctx context.Context, userID string, lastSyncVersion int64, secrets []*grpc2.Secret) (*grpc2.SyncResponse, error) {
 	ctx = c.createAuthContext(ctx)
-	return c.secretClient.Sync(ctx, &pb.SyncRequest{
+	return c.secretClient.Sync(ctx, &grpc2.SyncRequest{
 		UserId:          userID,
 		LastSyncVersion: lastSyncVersion,
 		Secrets:         secrets,
@@ -90,9 +90,9 @@ func (c *GRPCClient) Sync(ctx context.Context, userID string, lastSyncVersion in
 }
 
 // GetSecret получает секрет по ID
-func (c *GRPCClient) GetSecret(ctx context.Context, secretID string) (*pb.Secret, error) {
+func (c *GRPCClient) GetSecret(ctx context.Context, secretID string) (*grpc2.Secret, error) {
 	ctx = c.createAuthContext(ctx)
-	resp, err := c.secretClient.GetSecret(ctx, &pb.GetSecretRequest{
+	resp, err := c.secretClient.GetSecret(ctx, &grpc2.GetSecretRequest{
 		SecretId: secretID,
 	})
 	if err != nil {
@@ -102,9 +102,9 @@ func (c *GRPCClient) GetSecret(ctx context.Context, secretID string) (*pb.Secret
 }
 
 // ListSecrets получает список секретов
-func (c *GRPCClient) ListSecrets(ctx context.Context, userID string, filterType pb.SecretType) ([]*pb.Secret, error) {
+func (c *GRPCClient) ListSecrets(ctx context.Context, userID string, filterType grpc2.SecretType) ([]*grpc2.Secret, error) {
 	ctx = c.createAuthContext(ctx)
-	resp, err := c.secretClient.ListSecrets(ctx, &pb.ListSecretsRequest{
+	resp, err := c.secretClient.ListSecrets(ctx, &grpc2.ListSecretsRequest{
 		UserId:     userID,
 		FilterType: filterType,
 	})
@@ -115,9 +115,9 @@ func (c *GRPCClient) ListSecrets(ctx context.Context, userID string, filterType 
 }
 
 // UpdateSecret обновляет секрет
-func (c *GRPCClient) UpdateSecret(ctx context.Context, secret *pb.Secret) error {
+func (c *GRPCClient) UpdateSecret(ctx context.Context, secret *grpc2.Secret) error {
 	ctx = c.createAuthContext(ctx)
-	_, err := c.secretClient.UpdateSecret(ctx, &pb.UpdateSecretRequest{
+	_, err := c.secretClient.UpdateSecret(ctx, &grpc2.UpdateSecretRequest{
 		Secret: secret,
 	})
 	return err
@@ -126,7 +126,7 @@ func (c *GRPCClient) UpdateSecret(ctx context.Context, secret *pb.Secret) error 
 // DeleteSecret удаляет секрет
 func (c *GRPCClient) DeleteSecret(ctx context.Context, secretID string) error {
 	ctx = c.createAuthContext(ctx)
-	_, err := c.secretClient.DeleteSecret(ctx, &pb.DeleteSecretRequest{
+	_, err := c.secretClient.DeleteSecret(ctx, &grpc2.DeleteSecretRequest{
 		SecretId: secretID,
 	})
 	return err

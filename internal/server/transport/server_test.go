@@ -9,9 +9,9 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
+	grpc2 "github.com/alisaviation/GophKeeper/internal/generated/grpc"
 	"github.com/alisaviation/GophKeeper/internal/server/app"
 	"github.com/alisaviation/GophKeeper/internal/server/transport"
-	pb "github.com/alisaviation/GophKeeper/internal/server/transport/grpc"
 )
 
 func TestServer_Integration(t *testing.T) {
@@ -45,10 +45,10 @@ func TestServer_Integration(t *testing.T) {
 	}
 	defer conn.Close()
 
-	client := pb.NewAuthServiceClient(conn)
+	client := grpc2.NewAuthServiceClient(conn)
 
 	t.Run("register and login flow", func(t *testing.T) {
-		registerResp, err := client.Register(context.Background(), &pb.RegisterRequest{
+		registerResp, err := client.Register(context.Background(), &grpc2.RegisterRequest{
 			Login:    "integrationuser",
 			Password: "password123",
 		})
@@ -59,7 +59,7 @@ func TestServer_Integration(t *testing.T) {
 			t.Error("Expected non-empty user ID")
 		}
 
-		loginResp, err := client.Login(context.Background(), &pb.LoginRequest{
+		loginResp, err := client.Login(context.Background(), &grpc2.LoginRequest{
 			Login:    "integrationuser",
 			Password: "password123",
 		})

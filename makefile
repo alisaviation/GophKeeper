@@ -1,4 +1,4 @@
-.PHONY: all build build-client build-server build-all release clean test deps install help
+.PHONY: all build build-client build-server build-all release clean test deps install help test-coverage coverage-html
 
 # Настройки
 APP_NAME := gophkeeper
@@ -6,6 +6,7 @@ VERSION ?= $(shell git describe --tags --always 2>/dev/null || echo "dev")
 COMMIT ?= $(shell git rev-parse --short HEAD)
 DATE ?= $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
 BUILD_DIR := dist
+EXCLUDE_PATTERNS = "*mock*" "*generated*" "*test*" "*vendor*" "*config*"
 
 # Флаги линковки
 LDFLAGS := -X main.version=$(VERSION) -X main.commit=$(COMMIT) -X main.date=$(DATE) -X main.builtBy=make
@@ -71,17 +72,77 @@ clean:
 	@mkdir -p $(BUILD_DIR)
 	@echo "Build directory cleaned"
 
-# Тестирование
+
+#test-coverage:
+#	@echo "Running tests with coverage..."
+#	go test ./... -v -race -coverprofile=coverage.out
+#	go tool cover -html=coverage.out -o coverage.html
+#	@echo "Coverage report generated: coverage.html"
+
+# Пакеты и файлы для исключения из покрытия
+EXCLUDE_PACKAGES := \
+    *mock* \
+    github.com/alisaviation/GophKeeper/internal/config \
+    github.com/alisaviation/GophKeeper/internal/generated/grpc \
+    *test* \
+    *third_party* \
+    *proto* \
+    "mocks.go" \
+    *cmd* \
+    *main*
+
+EXCLUDE_PATTERN := $(patsubst %,-e %,${EXCLUDE_PACKAGES})
+ALL_PACKAGES := $(shell go list ./...)
+COVERAGE_PACKAGES := $(shell go list ./... | grep -v ${EXCLUDE_PATTERN})
+COVERAGE_PACKAGES_COMMA := $(shell echo $(COVERAGE_PACKAGES) | tr ' ' ',')
+
+# Цвета для вывода
+GREEN := \033[32m
+YELLOW := \033[33m
+RED := \033[31m
+RESET := \033[0m
+
 test:
 	@echo "Running tests..."
-	go test ./... -v -race
-	@echo "Tests completed"
+	go test -v -race ./...
 
 test-coverage:
-	@echo "Running tests with coverage..."
-	go test ./... -v -race -coverprofile=coverage.out
+	@echo "$(YELLOW)Running tests with coverage...$(RESET)"
+	@echo "$(GREEN)Included packages:$(RESET)"
+	@for pkg in $(COVERAGE_PACKAGES); do \
+		echo "  $$pkg"; \
+	done
+	@echo "$(RED)Excluded packages:$(RESET)"
+	@for pkg in $(filter-out $(COVERAGE_PACKAGES),$(ALL_PACKAGES)); do \
+		echo "  $$pkg"; \
+	done
+	@echo ""
+
+ifeq ($(COVERAGE_PACKAGES),)
+	@echo "$(RED)Error: No packages found for coverage analysis$(RESET)"
+	@exit 1
+endif
+
+	go test -v -race -coverprofile=coverage.out -coverpkg=$(COVERAGE_PACKAGES_COMMA) $(COVERAGE_PACKAGES)
+	@echo "$(GREEN)Coverage report generated: coverage.out$(RESET)"
+
+coverage-html: test-coverage
+	@echo "$(YELLOW)Generating HTML coverage report...$(RESET)"
 	go tool cover -html=coverage.out -o coverage.html
-	@echo "Coverage report generated: coverage.html"
+	@echo "$(GREEN)HTML report generated: coverage.html$(RESET)"
+
+coverage-func: test-coverage
+	@echo "$(YELLOW)Function coverage:$(RESET)"
+	go tool cover -func=coverage.out
+
+
+# Показать информацию об исключенных пакетах
+info:
+	@echo "$(RED)Excluded packages:$(RESET)"
+	@for pkg in $(filter-out $(COVERAGE_PACKAGES),$(ALL_PACKAGES)); do \
+		echo "  $$pkg"; \
+	done
+
 
 # Установка зависимостей
 deps:
@@ -138,5 +199,4 @@ help:
 	@echo "  Commit: $(COMMIT)"
 	@echo "  Build dir: $(BUILD_DIR)"
 
-# Показываем помощь по умолчанию
 .DEFAULT_GOAL := help

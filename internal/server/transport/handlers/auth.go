@@ -6,14 +6,14 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"github.com/alisaviation/GophKeeper/internal/generated/grpc"
 	"github.com/alisaviation/GophKeeper/internal/server/app"
 	"github.com/alisaviation/GophKeeper/internal/server/domain"
-	pb "github.com/alisaviation/GophKeeper/internal/server/transport/grpc"
 )
 
 // AuthHandler обработчик gRPC для аутентификации
 type AuthHandler struct {
-	pb.UnimplementedAuthServiceServer
+	grpc.UnimplementedAuthServiceServer
 	authService *app.AuthService
 }
 
@@ -25,7 +25,7 @@ func NewAuthHandler(authService *app.AuthService) *AuthHandler {
 }
 
 // Register регистрирует нового пользователя
-func (h *AuthHandler) Register(ctx context.Context, req *pb.RegisterRequest) (*pb.RegisterResponse, error) {
+func (h *AuthHandler) Register(ctx context.Context, req *grpc.RegisterRequest) (*grpc.RegisterResponse, error) {
 	if err := validateRegisterRequest(req); err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
@@ -35,13 +35,13 @@ func (h *AuthHandler) Register(ctx context.Context, req *pb.RegisterRequest) (*p
 		return nil, MapErrorToStatus(err)
 	}
 
-	return &pb.RegisterResponse{
+	return &grpc.RegisterResponse{
 		UserId: userID,
 	}, nil
 }
 
 // Login аутентифицирует пользователя
-func (h *AuthHandler) Login(ctx context.Context, req *pb.LoginRequest) (*pb.LoginResponse, error) {
+func (h *AuthHandler) Login(ctx context.Context, req *grpc.LoginRequest) (*grpc.LoginResponse, error) {
 	if err := validateLoginRequest(req); err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
@@ -51,7 +51,7 @@ func (h *AuthHandler) Login(ctx context.Context, req *pb.LoginRequest) (*pb.Logi
 		return nil, MapErrorToStatus(err)
 	}
 
-	return &pb.LoginResponse{
+	return &grpc.LoginResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 		UserId:       userID,
@@ -59,7 +59,7 @@ func (h *AuthHandler) Login(ctx context.Context, req *pb.LoginRequest) (*pb.Logi
 }
 
 // RefreshToken обновляет access token
-func (h *AuthHandler) RefreshToken(ctx context.Context, req *pb.RefreshTokenRequest) (*pb.RefreshTokenResponse, error) {
+func (h *AuthHandler) RefreshToken(ctx context.Context, req *grpc.RefreshTokenRequest) (*grpc.RefreshTokenResponse, error) {
 	if req.GetRefreshToken() == "" {
 		return nil, status.Error(codes.InvalidArgument, "refresh token is required")
 	}
@@ -69,24 +69,24 @@ func (h *AuthHandler) RefreshToken(ctx context.Context, req *pb.RefreshTokenRequ
 		return nil, MapErrorToStatus(err)
 	}
 
-	return &pb.RefreshTokenResponse{
+	return &grpc.RefreshTokenResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 	}, nil
 }
 
 // Logout выполняет выход пользователя
-func (h *AuthHandler) Logout(ctx context.Context, req *pb.LogoutRequest) (*pb.LogoutResponse, error) {
+func (h *AuthHandler) Logout(ctx context.Context, req *grpc.LogoutRequest) (*grpc.LogoutResponse, error) {
 	if req.GetRefreshToken() == "" {
 		return nil, status.Error(codes.InvalidArgument, "refresh token is required")
 	}
-	return &pb.LogoutResponse{
+	return &grpc.LogoutResponse{
 		Success: true,
 	}, nil
 }
 
 // validateRegisterRequest валидирует запрос регистрации
-func validateRegisterRequest(req *pb.RegisterRequest) error {
+func validateRegisterRequest(req *grpc.RegisterRequest) error {
 	if req.GetLogin() == "" {
 		return domain.ValidationError{Field: "login", Message: "is required"}
 	}
@@ -100,7 +100,7 @@ func validateRegisterRequest(req *pb.RegisterRequest) error {
 }
 
 // validateLoginRequest валидирует запрос входа
-func validateLoginRequest(req *pb.LoginRequest) error {
+func validateLoginRequest(req *grpc.LoginRequest) error {
 	if req.GetLogin() == "" {
 		return domain.ValidationError{Field: "login", Message: "is required"}
 	}

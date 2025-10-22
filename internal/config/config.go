@@ -82,14 +82,6 @@ func SetClientConfig() ClientConfig {
 	var config ClientConfig
 	var configFile string
 
-	//flag.StringVar(&configFile, "c", "", "Path to config file")
-	//flag.StringVar(&configFile, "config", "", "Path to config file")
-	//serverAddress := flag.String("a", "localhost:8080", "Server address")
-	//storagePath := flag.String("s", "", "Storage path")
-	//autoSync := flag.Bool("auto-sync", true, "Enable auto sync")
-
-	//flag.Parse()
-
 	defaultConfig := ClientConfig{
 		ServerAddress: "localhost:8080",
 		StoragePath:   getDefaultStoragePath(),
@@ -106,12 +98,6 @@ func SetClientConfig() ClientConfig {
 			applyFileConfigToClient(&config, fileConfig)
 		}
 	}
-
-	//config.ServerAddress = *serverAddress
-	//if *storagePath != "" {
-	//	config.StoragePath = *storagePath
-	//}
-	//config.AutoSync = *autoSync
 
 	applyEnvToClient(&config)
 
@@ -383,44 +369,6 @@ func loadConfigFromFile(filePath string, config *FileConfig) error {
 	}
 
 	return nil
-}
-
-// DefaultClientConfig returns default client configuration
-func DefaultClientConfig() ClientConfig {
-	return ClientConfig{
-		ServerAddress: "localhost:8080",
-		StoragePath:   getDefaultStoragePath(),
-		AutoSync:      true,
-	}
-}
-
-// DefaultServerConfig returns default server configuration
-func DefaultServerConfig() ServerConfig {
-	return ServerConfig{
-		ServerAddress: "localhost:8080",
-		GRPCPort:      8080,
-		Database: DatabaseConfig{
-			Type:            "postgres",
-			Host:            "localhost",
-			Port:            5432,
-			User:            "postgres",
-			Password:        "",
-			Name:            "gophkeeper",
-			SSLMode:         "disable",
-			MaxOpenConns:    25,
-			MaxIdleConns:    5,
-			ConnMaxLifetime: 5 * time.Minute,
-			ConnMaxIdleTime: time.Minute,
-		},
-		JWT: JWTConfig{
-			Secret:        "default-jwt-secret-key-change-in-production",
-			AccessExpiry:  15 * time.Minute,
-			RefreshExpiry: 7 * 24 * time.Hour,
-		},
-		Encryption: EncryptionConfig{
-			Key: "",
-		},
-	}
 }
 
 // DSN возвращает строку подключения к базе данных

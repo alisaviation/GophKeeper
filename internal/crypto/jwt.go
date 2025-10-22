@@ -29,7 +29,7 @@ type JWTManager struct {
 type JWTConfig struct {
 	Secret        string        `yaml:"secret" env:"JWT_SECRET"`
 	AccessExpiry  time.Duration `yaml:"access_expiry" env:"JWT_ACCESS_EXPIRY" default:"15m"`
-	RefreshExpiry time.Duration `yaml:"refresh_expiry" env:"JWT_REFRESH_EXPIRY" default:"168h"` // 7 дней
+	RefreshExpiry time.Duration `yaml:"refresh_expiry" env:"JWT_REFRESH_EXPIRY" default:"168h"`
 }
 
 // DefaultConfig возвращает конфигурацию по умолчанию

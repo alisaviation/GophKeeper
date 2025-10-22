@@ -6,15 +6,15 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"github.com/alisaviation/GophKeeper/internal/generated/grpc"
 	"github.com/alisaviation/GophKeeper/internal/server/app"
 	"github.com/alisaviation/GophKeeper/internal/server/domain"
-	pb "github.com/alisaviation/GophKeeper/internal/server/transport/grpc"
 	"github.com/alisaviation/GophKeeper/internal/server/transport/middleware"
 )
 
 // SecretHandler обработчик gRPC для работы с секретами
 type SecretHandler struct {
-	pb.UnimplementedSecretServiceServer
+	grpc.UnimplementedSecretServiceServer
 	dataService *app.DataService
 }
 
@@ -26,7 +26,7 @@ func NewSecretHandler(dataService *app.DataService) *SecretHandler {
 }
 
 // Sync синхронизирует данные между клиентом и сервером
-func (h *SecretHandler) Sync(ctx context.Context, req *pb.SyncRequest) (*pb.SyncResponse, error) {
+func (h *SecretHandler) Sync(ctx context.Context, req *grpc.SyncRequest) (*grpc.SyncResponse, error) {
 	user, err := middleware.GetUserFromContext(ctx)
 	if err != nil {
 		return nil, err
@@ -42,12 +42,12 @@ func (h *SecretHandler) Sync(ctx context.Context, req *pb.SyncRequest) (*pb.Sync
 		return nil, MapErrorToStatus(err)
 	}
 
-	serverSecrets := make([]*pb.Secret, 0, len(result.ServerSecrets))
+	serverSecrets := make([]*grpc.Secret, 0, len(result.ServerSecrets))
 	for _, secret := range result.ServerSecrets {
 		serverSecrets = append(serverSecrets, secret.ToProto())
 	}
 
-	return &pb.SyncResponse{
+	return &grpc.SyncResponse{
 		CurrentVersion: result.CurrentVersion,
 		Secrets:        serverSecrets,
 		Conflicts:      result.Conflicts,
@@ -55,7 +55,7 @@ func (h *SecretHandler) Sync(ctx context.Context, req *pb.SyncRequest) (*pb.Sync
 }
 
 // GetSecret возвращает секрет по ID
-func (h *SecretHandler) GetSecret(ctx context.Context, req *pb.GetSecretRequest) (*pb.GetSecretResponse, error) {
+func (h *SecretHandler) GetSecret(ctx context.Context, req *grpc.GetSecretRequest) (*grpc.GetSecretResponse, error) {
 	user, err := middleware.GetUserFromContext(ctx)
 	if err != nil {
 		return nil, err
@@ -70,13 +70,13 @@ func (h *SecretHandler) GetSecret(ctx context.Context, req *pb.GetSecretRequest)
 		return nil, MapErrorToStatus(err)
 	}
 
-	return &pb.GetSecretResponse{
+	return &grpc.GetSecretResponse{
 		Secret: secret.ToProto(),
 	}, nil
 }
 
 // ListSecrets возвращает список секретов пользователя
-func (h *SecretHandler) ListSecrets(ctx context.Context, req *pb.ListSecretsRequest) (*pb.ListSecretsResponse, error) {
+func (h *SecretHandler) ListSecrets(ctx context.Context, req *grpc.ListSecretsRequest) (*grpc.ListSecretsResponse, error) {
 	user, err := middleware.GetUserFromContext(ctx)
 	if err != nil {
 		return nil, err
@@ -85,7 +85,7 @@ func (h *SecretHandler) ListSecrets(ctx context.Context, req *pb.ListSecretsRequ
 	var secrets []*domain.Secret
 	var filterType *domain.SecretType
 
-	if req.GetFilterType() != pb.SecretType_SECRET_TYPE_UNSPECIFIED {
+	if req.GetFilterType() != grpc.SecretType_SECRET_TYPE_UNSPECIFIED {
 		st := domain.SecretTypeFromProto(req.GetFilterType())
 		filterType = &st
 	}
@@ -95,18 +95,18 @@ func (h *SecretHandler) ListSecrets(ctx context.Context, req *pb.ListSecretsRequ
 		return nil, MapErrorToStatus(err)
 	}
 
-	pbSecrets := make([]*pb.Secret, 0, len(secrets))
+	pbSecrets := make([]*grpc.Secret, 0, len(secrets))
 	for _, secret := range secrets {
 		pbSecrets = append(pbSecrets, secret.ToProto())
 	}
 
-	return &pb.ListSecretsResponse{
+	return &grpc.ListSecretsResponse{
 		Secrets: pbSecrets,
 	}, nil
 }
 
 // UpdateSecret обновляет существующий секрет
-func (h *SecretHandler) UpdateSecret(ctx context.Context, req *pb.UpdateSecretRequest) (*pb.UpdateSecretResponse, error) {
+func (h *SecretHandler) UpdateSecret(ctx context.Context, req *grpc.UpdateSecretRequest) (*grpc.UpdateSecretResponse, error) {
 	user, err := middleware.GetUserFromContext(ctx)
 	if err != nil {
 		return nil, err
@@ -126,13 +126,13 @@ func (h *SecretHandler) UpdateSecret(ctx context.Context, req *pb.UpdateSecretRe
 		return nil, MapErrorToStatus(err)
 	}
 
-	return &pb.UpdateSecretResponse{
+	return &grpc.UpdateSecretResponse{
 		Secret: updatedSecret.ToProto(),
 	}, nil
 }
 
 // DeleteSecret удаляет секрет
-func (h *SecretHandler) DeleteSecret(ctx context.Context, req *pb.DeleteSecretRequest) (*pb.DeleteSecretResponse, error) {
+func (h *SecretHandler) DeleteSecret(ctx context.Context, req *grpc.DeleteSecretRequest) (*grpc.DeleteSecretResponse, error) {
 	user, err := middleware.GetUserFromContext(ctx)
 	if err != nil {
 		return nil, err
@@ -146,7 +146,7 @@ func (h *SecretHandler) DeleteSecret(ctx context.Context, req *pb.DeleteSecretRe
 		return nil, MapErrorToStatus(err)
 	}
 
-	return &pb.DeleteSecretResponse{
+	return &grpc.DeleteSecretResponse{
 		Success: true,
 	}, nil
 }

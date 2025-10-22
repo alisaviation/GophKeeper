@@ -5,7 +5,7 @@ import (
 
 	"github.com/google/uuid"
 
-	gophkeeper_v1 "github.com/alisaviation/GophKeeper/internal/server/transport/grpc"
+	gophkeeper_v1 "github.com/alisaviation/GophKeeper/internal/generated/grpc"
 )
 
 type User struct {

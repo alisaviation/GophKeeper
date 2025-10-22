@@ -7,11 +7,11 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 
+	pb "github.com/alisaviation/GophKeeper/internal/generated/grpc"
 	"github.com/alisaviation/GophKeeper/internal/server/transport/handlers"
 	"github.com/alisaviation/GophKeeper/internal/server/transport/middleware"
 
 	"github.com/alisaviation/GophKeeper/internal/server/app"
-	pb "github.com/alisaviation/GophKeeper/internal/server/transport/grpc"
 )
 
 // Server gRPC сервер

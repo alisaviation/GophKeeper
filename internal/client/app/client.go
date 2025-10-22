@@ -8,20 +8,39 @@ import (
 	"time"
 
 	"github.com/alisaviation/GophKeeper/internal/client/domain"
-	"github.com/alisaviation/GophKeeper/internal/client/storage"
-	"github.com/alisaviation/GophKeeper/internal/client/transport"
 	"github.com/alisaviation/GophKeeper/internal/crypto"
-	pb "github.com/alisaviation/GophKeeper/internal/server/transport/grpc"
+	pb "github.com/alisaviation/GophKeeper/internal/generated/grpc"
 )
+
+// Storage интерфейс для хранилища
+type Storage interface {
+	SaveSession(session *domain.Session) error
+	GetSession() (*domain.Session, error)
+	DeleteSession() error
+	SaveSecret(secret *domain.SecretData) error
+	GetSecret(id string) (*domain.SecretData, error)
+	GetSecrets() ([]*domain.SecretData, error)
+}
+
+// Transport интерфейс для транспорта
+type Transport interface {
+	Register(ctx context.Context, login, password string) (string, error)
+	Login(ctx context.Context, login, password string) (string, string, string, error)
+	Logout(ctx context.Context, refreshToken string) error
+	Sync(ctx context.Context, userID string, lastSyncVersion int64, secrets []*pb.Secret) (*pb.SyncResponse, error)
+	SetToken(token string)
+}
 
 // Client основное клиентское приложение
 type Client struct {
-	storage   *storage.FileStorage
-	transport *transport.GRPCClient
+	storage Storage
+	//*storage.FileStorage
+	transport Transport
+	//*transport.GRPCClient
 }
 
 // NewClient создает новый клиент
-func NewClient(storage *storage.FileStorage, transport *transport.GRPCClient) *Client {
+func NewClient(storage Storage, transport Transport) *Client {
 	return &Client{
 		storage:   storage,
 		transport: transport,
