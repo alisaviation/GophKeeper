@@ -13,7 +13,7 @@ import (
 // AuthService предоставляет методы для аутентификации и авторизации
 type AuthService struct {
 	users      interfaces.UserRepository
-	jwtManager crypto.JWTManagerInterface // Используем интерфейс
+	jwtManager crypto.JWTManagerInterface
 }
 
 // NewAuthService создает новый сервис аутентификации
@@ -137,42 +137,4 @@ func (s *AuthService) RefreshTokens(ctx context.Context, refreshToken string) (s
 	}
 
 	return accessToken, newRefreshToken, nil
-}
-
-func validateCredentials(login, password string) error {
-	if len(login) < 3 || len(login) > 50 {
-		return &domain.ValidationError{
-			Field:   "login",
-			Message: "must be between 3 and 50 characters",
-		}
-	}
-
-	if len(password) < 8 {
-		return &domain.ValidationError{
-			Field:   "password",
-			Message: "must be at least 8 characters",
-		}
-	}
-
-	for _, char := range login {
-		if !isValidLoginChar(char) {
-			return &domain.ValidationError{
-				Field:   "login",
-				Message: "can only contain letters, numbers and underscores",
-			}
-		}
-	}
-
-	return nil
-}
-
-func isValidLoginChar(char rune) bool {
-	return (char >= 'a' && char <= 'z') ||
-		(char >= 'A' && char <= 'Z') ||
-		(char >= '0' && char <= '9') ||
-		char == '_'
-}
-
-func generateUserID() string {
-	return domain.GenerateID()
 }

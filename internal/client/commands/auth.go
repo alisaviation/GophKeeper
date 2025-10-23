@@ -97,7 +97,6 @@ func NewAuthCommand(clientApp *app.Client) *cobra.Command {
 	return authCmd
 }
 
-// readPassword читает пароль из консоли
 func readPassword(prompt string) string {
 	fmt.Print(prompt)
 	password, err := term.ReadPassword(int(syscall.Stdin))

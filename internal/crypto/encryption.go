@@ -77,7 +77,7 @@ func (e *AESGCMEncryptor) Decrypt(ciphertext []byte) ([]byte, error) {
 	return plaintext, nil
 }
 
-// NoopEncryptor - заглушка для тестов (не шифрует данные)
+// NoopEncryptor заглушка для тестов
 type NoopEncryptor struct{}
 
 func (e *NoopEncryptor) Encrypt(data []byte) ([]byte, error) {

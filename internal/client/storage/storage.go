@@ -64,7 +64,6 @@ func (s *FileStorage) SaveSecret(secret *domain.SecretData) error {
 		return err
 	}
 
-	// Обновляем или добавляем секрет
 	found := false
 	for i, existingSecret := range secrets {
 		if existingSecret.ID == secret.ID {

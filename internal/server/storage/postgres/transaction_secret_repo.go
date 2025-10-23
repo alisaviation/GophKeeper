@@ -9,102 +9,6 @@ import (
 	"github.com/alisaviation/GophKeeper/internal/server/storage/interfaces"
 )
 
-// txUserRepository реализует UserRepository для транзакций
-type txUserRepository struct {
-	tx pgx.Tx
-}
-
-// NewTxUserRepository создает новый UserRepository для транзакций
-func NewTxUserRepository(tx pgx.Tx) interfaces.UserRepository {
-	return &txUserRepository{tx: tx}
-}
-
-func (r *txUserRepository) Create(ctx context.Context, user *domain.User) error {
-	query := `
-		INSERT INTO users (id, login, password_hash, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5)
-	`
-
-	_, err := r.tx.Exec(ctx, query,
-		user.ID,
-		user.Login,
-		user.PasswordHash,
-		user.CreatedAt,
-		user.UpdatedAt,
-	)
-
-	return err
-}
-
-func (r *txUserRepository) GetByLogin(ctx context.Context, login string) (*domain.User, error) {
-	query := `
-		SELECT id, login, password_hash, created_at, updated_at
-		FROM users
-		WHERE login = $1
-	`
-
-	var user domain.User
-	err := r.tx.QueryRow(ctx, query, login).Scan(
-		&user.ID,
-		&user.Login,
-		&user.PasswordHash,
-		&user.CreatedAt,
-		&user.UpdatedAt,
-	)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return &user, nil
-}
-
-func (r *txUserRepository) GetByID(ctx context.Context, id string) (*domain.User, error) {
-	query := `
-		SELECT id, login, password_hash, created_at, updated_at
-		FROM users
-		WHERE id = $1
-	`
-
-	var user domain.User
-	err := r.tx.QueryRow(ctx, query, id).Scan(
-		&user.ID,
-		&user.Login,
-		&user.PasswordHash,
-		&user.CreatedAt,
-		&user.UpdatedAt,
-	)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return &user, nil
-}
-
-func (r *txUserRepository) Update(ctx context.Context, user *domain.User) error {
-	query := `
-		UPDATE users 
-		SET login = $1, password_hash = $2, updated_at = $3
-		WHERE id = $4
-	`
-
-	_, err := r.tx.Exec(ctx, query,
-		user.Login,
-		user.PasswordHash,
-		user.UpdatedAt,
-		user.ID,
-	)
-
-	return err
-}
-
-func (r *txUserRepository) Delete(ctx context.Context, id string) error {
-	query := `DELETE FROM users WHERE id = $1`
-	_, err := r.tx.Exec(ctx, query, id)
-	return err
-}
-
 // txSecretRepository реализует SecretRepository для транзакций
 type txSecretRepository struct {
 	tx pgx.Tx
@@ -115,6 +19,7 @@ func NewTxSecretRepository(tx pgx.Tx) interfaces.SecretRepository {
 	return &txSecretRepository{tx: tx}
 }
 
+// Create создает новый секрет
 func (r *txSecretRepository) Create(ctx context.Context, secret *domain.Secret) error {
 	query := `
 		INSERT INTO secrets (id, user_id, type, name, encrypted_data, encrypted_meta, version, created_at, updated_at, is_deleted)
@@ -137,6 +42,7 @@ func (r *txSecretRepository) Create(ctx context.Context, secret *domain.Secret) 
 	return err
 }
 
+// GetByID получает секрет по ID и ID пользователя
 func (r *txSecretRepository) GetByID(ctx context.Context, id, userID string) (*domain.Secret, error) {
 	query := `
 		SELECT id, user_id, type, name, encrypted_data, encrypted_meta, version, created_at, updated_at, is_deleted
@@ -168,6 +74,7 @@ func (r *txSecretRepository) GetByID(ctx context.Context, id, userID string) (*d
 	return &secret, nil
 }
 
+// ListByUser получает список секретов пользователя
 func (r *txSecretRepository) ListByUser(ctx context.Context, userID string) ([]*domain.Secret, error) {
 	query := `
 		SELECT id, user_id, type, name, encrypted_data, encrypted_meta, version, created_at, updated_at, is_deleted
@@ -210,6 +117,7 @@ func (r *txSecretRepository) ListByUser(ctx context.Context, userID string) ([]*
 	return secrets, nil
 }
 
+// ListByUserAndType получает список секретов пользователя определенного типа
 func (r *txSecretRepository) ListByUserAndType(ctx context.Context, userID string, secretType domain.SecretType) ([]*domain.Secret, error) {
 	query := `
 		SELECT id, user_id, type, name, encrypted_data, encrypted_meta, version, created_at, updated_at, is_deleted
@@ -252,6 +160,7 @@ func (r *txSecretRepository) ListByUserAndType(ctx context.Context, userID strin
 	return secrets, nil
 }
 
+// Update обновляет секрет
 func (r *txSecretRepository) Update(ctx context.Context, secret *domain.Secret) error {
 	query := `
 		UPDATE secrets 
@@ -283,12 +192,14 @@ func (r *txSecretRepository) Update(ctx context.Context, secret *domain.Secret) 
 	return nil
 }
 
+// Delete удаляет секрет
 func (r *txSecretRepository) Delete(ctx context.Context, id, userID string) error {
 	query := `DELETE FROM secrets WHERE id = $1 AND user_id = $2`
 	_, err := r.tx.Exec(ctx, query, id, userID)
 	return err
 }
 
+// SoftDelete выполняет мягкое удаление секрета
 func (r *txSecretRepository) SoftDelete(ctx context.Context, id, userID string) error {
 	query := `
 		UPDATE secrets 
@@ -308,6 +219,7 @@ func (r *txSecretRepository) SoftDelete(ctx context.Context, id, userID string) 
 	return nil
 }
 
+// GetUserSecretsVersion получает максимальную версию секретов пользователя
 func (r *txSecretRepository) GetUserSecretsVersion(ctx context.Context, userID string) (int64, error) {
 	query := `
 		SELECT COALESCE(MAX(version), 0) 
@@ -320,6 +232,7 @@ func (r *txSecretRepository) GetUserSecretsVersion(ctx context.Context, userID s
 	return version, err
 }
 
+// GetChangedSecrets получает список секретов пользователя, измененных после указанной версии
 func (r *txSecretRepository) GetChangedSecrets(ctx context.Context, userID string, lastSyncVersion int64) ([]*domain.Secret, error) {
 	query := `
 		SELECT id, user_id, type, name, encrypted_data, encrypted_meta, version, created_at, updated_at, is_deleted

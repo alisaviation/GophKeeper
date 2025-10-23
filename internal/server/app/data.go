@@ -16,6 +16,13 @@ type DataService struct {
 	crypto  crypto.Encryptor
 }
 
+// SyncResult представляет результат синхронизации
+type SyncResult struct {
+	CurrentVersion int64
+	ServerSecrets  []*domain.Secret
+	Conflicts      []string
+}
+
 // NewDataService создает новый сервис управления данными
 func NewDataService(secrets interfaces.SecretRepository, crypto crypto.Encryptor) *DataService {
 	return &DataService{
@@ -53,13 +60,6 @@ func (s *DataService) Sync(ctx context.Context, userID string, clientSecrets []*
 	}
 
 	return result, nil
-}
-
-// SyncResult представляет результат синхронизации
-type SyncResult struct {
-	CurrentVersion int64
-	ServerSecrets  []*domain.Secret
-	Conflicts      []string
 }
 
 // GetSecret возвращает секрет по ID
@@ -143,89 +143,5 @@ func (s *DataService) DeleteSecret(ctx context.Context, userID, secretID string)
 	if err != nil {
 		return domain.ErrSecretNotFound
 	}
-	return nil
-}
-
-func (s *DataService) processClientChanges(ctx context.Context, userID string, clientSecrets []*domain.Secret) ([]string, error) {
-	var conflicts []string
-
-	for _, clientSecret := range clientSecrets {
-		if clientSecret.UserID != userID {
-			return nil, fmt.Errorf("access denied for secret %s: %w", clientSecret.ID, domain.ErrAccessDenied)
-		}
-
-		if clientSecret.IsDeleted {
-			err := s.secrets.SoftDelete(ctx, clientSecret.ID, userID)
-			if err != nil && err != domain.ErrSecretNotFound {
-				conflicts = append(conflicts, clientSecret.ID)
-			}
-		} else {
-			existing, err := s.secrets.GetByID(ctx, clientSecret.ID, userID)
-			if err != nil && err != domain.ErrSecretNotFound {
-				conflicts = append(conflicts, clientSecret.ID)
-				continue
-			}
-
-			if existing == nil {
-				clientSecret.Version = 1
-				clientSecret.CreatedAt = domain.Now()
-				clientSecret.UpdatedAt = domain.Now()
-				err = s.secrets.Create(ctx, clientSecret)
-				if err != nil {
-					conflicts = append(conflicts, clientSecret.ID)
-				}
-			} else {
-				if existing.Version != clientSecret.Version {
-					conflicts = append(conflicts, clientSecret.ID)
-				} else {
-					clientSecret.Version = existing.Version
-					clientSecret.UpdatedAt = domain.Now()
-					err = s.secrets.Update(ctx, clientSecret)
-					if err != nil {
-						conflicts = append(conflicts, clientSecret.ID)
-					}
-				}
-			}
-		}
-	}
-
-	return conflicts, nil
-}
-
-func (s *DataService) validateSecret(secret *domain.Secret) error {
-	if secret.UserID == "" {
-		return &domain.ValidationError{
-			Field:   "user_id",
-			Message: "is required",
-		}
-	}
-
-	if secret.Name == "" {
-		return &domain.ValidationError{
-			Field:   "name",
-			Message: "is required",
-		}
-	}
-
-	if len(secret.EncryptedData) == 0 {
-		return &domain.ValidationError{
-			Field:   "encrypted_data",
-			Message: "is required",
-		}
-	}
-
-	if len(secret.EncryptedData) > 10*1024*1024 {
-		return &domain.ValidationError{
-			Field:   "encrypted_data",
-			Message: "too large",
-		}
-	}
-
-	switch secret.Type {
-	case domain.LoginPassword, domain.TextData, domain.BinaryData, domain.BankCard:
-	default:
-		return fmt.Errorf("invalid secret type: %w", domain.ErrInvalidSecretType)
-	}
-
 	return nil
 }

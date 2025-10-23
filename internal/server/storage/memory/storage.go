@@ -13,17 +13,17 @@ import (
 type memoryStorage struct {
 	mu         sync.RWMutex
 	users      map[string]*domain.User
-	secrets    map[string]*domain.Secret // key: userID_secretID
+	secrets    map[string]*domain.Secret
 	userRepo   *memoryUserRepository
 	secretRepo *memorySecretRepository
 }
 
-// memoryUserRepository реализует UserRepository для памяти
+// memoryUserRepository реализует UserRepository
 type memoryUserRepository struct {
 	storage *memoryStorage
 }
 
-// memorySecretRepository реализует SecretRepository для памяти
+// memorySecretRepository реализует SecretRepository
 type memorySecretRepository struct {
 	storage *memoryStorage
 }
@@ -80,10 +80,12 @@ func (s *memoryStorage) Close() error {
 	return nil
 }
 
+// Ping проверяет доступность хранилища
 func (s *memoryStorage) Ping(ctx context.Context) error {
 	return nil
 }
 
+// Create создает нового пользователя
 func (r *memoryUserRepository) Create(ctx context.Context, user *domain.User) error {
 	r.storage.mu.Lock()
 	defer r.storage.mu.Unlock()
@@ -98,6 +100,7 @@ func (r *memoryUserRepository) Create(ctx context.Context, user *domain.User) er
 	return nil
 }
 
+// GetByLogin получает пользователя по логину
 func (r *memoryUserRepository) GetByLogin(ctx context.Context, login string) (*domain.User, error) {
 	r.storage.mu.RLock()
 	defer r.storage.mu.RUnlock()
@@ -110,6 +113,7 @@ func (r *memoryUserRepository) GetByLogin(ctx context.Context, login string) (*d
 	return nil, domain.ErrUserNotFound
 }
 
+// GetByID получает пользователя по ID
 func (r *memoryUserRepository) GetByID(ctx context.Context, id string) (*domain.User, error) {
 	r.storage.mu.RLock()
 	defer r.storage.mu.RUnlock()
@@ -121,6 +125,7 @@ func (r *memoryUserRepository) GetByID(ctx context.Context, id string) (*domain.
 	return user, nil
 }
 
+// Update обновляет данные пользователя
 func (r *memoryUserRepository) Update(ctx context.Context, user *domain.User) error {
 	r.storage.mu.Lock()
 	defer r.storage.mu.Unlock()
@@ -140,6 +145,7 @@ func (r *memoryUserRepository) Update(ctx context.Context, user *domain.User) er
 	return nil
 }
 
+// Delete удаляет пользователя
 func (r *memoryUserRepository) Delete(ctx context.Context, id string) error {
 	r.storage.mu.Lock()
 	defer r.storage.mu.Unlock()
@@ -153,6 +159,7 @@ func (r *memoryUserRepository) Delete(ctx context.Context, id string) error {
 	return nil
 }
 
+// Create создает новый секрет
 func (r *memorySecretRepository) Create(ctx context.Context, secret *domain.Secret) error {
 	r.storage.mu.Lock()
 	defer r.storage.mu.Unlock()
@@ -162,6 +169,7 @@ func (r *memorySecretRepository) Create(ctx context.Context, secret *domain.Secr
 	return nil
 }
 
+// GetByID получает секрет по ID и ID пользователя
 func (r *memorySecretRepository) GetByID(ctx context.Context, id, userID string) (*domain.Secret, error) {
 	r.storage.mu.RLock()
 	defer r.storage.mu.RUnlock()
@@ -174,6 +182,7 @@ func (r *memorySecretRepository) GetByID(ctx context.Context, id, userID string)
 	return secret, nil
 }
 
+// ListByUser получает список секретов пользователя
 func (r *memorySecretRepository) ListByUser(ctx context.Context, userID string) ([]*domain.Secret, error) {
 	r.storage.mu.RLock()
 	defer r.storage.mu.RUnlock()
@@ -187,6 +196,7 @@ func (r *memorySecretRepository) ListByUser(ctx context.Context, userID string) 
 	return secrets, nil
 }
 
+// ListByUserAndType получает список секретов пользователя определенного типа
 func (r *memorySecretRepository) ListByUserAndType(ctx context.Context, userID string, secretType domain.SecretType) ([]*domain.Secret, error) {
 	r.storage.mu.RLock()
 	defer r.storage.mu.RUnlock()
@@ -200,6 +210,7 @@ func (r *memorySecretRepository) ListByUserAndType(ctx context.Context, userID s
 	return secrets, nil
 }
 
+// Update обновляет секрет
 func (r *memorySecretRepository) Update(ctx context.Context, secret *domain.Secret) error {
 	r.storage.mu.Lock()
 	defer r.storage.mu.Unlock()
@@ -220,6 +231,7 @@ func (r *memorySecretRepository) Update(ctx context.Context, secret *domain.Secr
 	return nil
 }
 
+// Delete удаляет секрет
 func (r *memorySecretRepository) Delete(ctx context.Context, id, userID string) error {
 	r.storage.mu.Lock()
 	defer r.storage.mu.Unlock()
@@ -234,6 +246,7 @@ func (r *memorySecretRepository) Delete(ctx context.Context, id, userID string) 
 	return nil
 }
 
+// SoftDelete выполняет мягкое удаление секрета
 func (r *memorySecretRepository) SoftDelete(ctx context.Context, id, userID string) error {
 	r.storage.mu.Lock()
 	defer r.storage.mu.Unlock()
@@ -251,6 +264,7 @@ func (r *memorySecretRepository) SoftDelete(ctx context.Context, id, userID stri
 	return nil
 }
 
+// GetUserSecretsVersion получает максимальную версию секретов пользователя
 func (r *memorySecretRepository) GetUserSecretsVersion(ctx context.Context, userID string) (int64, error) {
 	r.storage.mu.RLock()
 	defer r.storage.mu.RUnlock()
@@ -266,6 +280,7 @@ func (r *memorySecretRepository) GetUserSecretsVersion(ctx context.Context, user
 	return maxVersion, nil
 }
 
+// GetChangedSecrets получает список секретов пользователя, измененных после указанной версии
 func (r *memorySecretRepository) GetChangedSecrets(ctx context.Context, userID string, lastSyncVersion int64) ([]*domain.Secret, error) {
 	r.storage.mu.RLock()
 	defer r.storage.mu.RUnlock()

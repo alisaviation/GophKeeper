@@ -72,7 +72,6 @@ func (i *AuthInterceptor) authenticate(ctx context.Context) (*domain.User, error
 	return user, nil
 }
 
-// isPublicMethod проверяет, является ли метод публичным
 func isPublicMethod(fullMethod string) bool {
 	publicMethods := map[string]bool{
 		"/gophkeeper.v1.AuthService/Register": true,
