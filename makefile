@@ -73,13 +73,6 @@ clean:
 	@echo "Build directory cleaned"
 
 
-#test-coverage:
-#	@echo "Running tests with coverage..."
-#	go test ./... -v -race -coverprofile=coverage.out
-#	go tool cover -html=coverage.out -o coverage.html
-#	@echo "Coverage report generated: coverage.html"
-
-# Пакеты и файлы для исключения из покрытия
 EXCLUDE_PACKAGES := \
     *mock* \
     github.com/alisaviation/GophKeeper/internal/config \
@@ -95,8 +88,6 @@ EXCLUDE_PATTERN := $(patsubst %,-e %,${EXCLUDE_PACKAGES})
 ALL_PACKAGES := $(shell go list ./...)
 COVERAGE_PACKAGES := $(shell go list ./... | grep -v ${EXCLUDE_PATTERN})
 COVERAGE_PACKAGES_COMMA := $(shell echo $(COVERAGE_PACKAGES) | tr ' ' ',')
-
-# Цвета для вывода
 GREEN := \033[32m
 YELLOW := \033[33m
 RED := \033[31m
@@ -142,7 +133,6 @@ info:
 	@for pkg in $(filter-out $(COVERAGE_PACKAGES),$(ALL_PACKAGES)); do \
 		echo "  $$pkg"; \
 	done
-
 
 # Установка зависимостей
 deps:
