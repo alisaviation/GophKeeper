@@ -11,12 +11,13 @@ import (
 
 	"github.com/alisaviation/GophKeeper/internal/server/app"
 	"github.com/alisaviation/GophKeeper/internal/server/domain"
+	"github.com/alisaviation/GophKeeper/internal/server/mocks"
 	"github.com/alisaviation/GophKeeper/internal/server/transport/middleware"
 )
 
 func TestAuthInterceptor_Unary(t *testing.T) {
-	mockUserRepo := app.NewMockUserRepository()
-	mockJWTManager := app.NewMockJWTManager()
+	mockUserRepo := mocks.NewMockUserRepository()
+	mockJWTManager := mocks.NewMockJWTManager()
 	authService := app.NewAuthService(mockUserRepo, mockJWTManager)
 	interceptor := middleware.NewAuthInterceptor(authService)
 

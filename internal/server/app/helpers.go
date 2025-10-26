@@ -49,46 +49,82 @@ func (s *DataService) processClientChanges(ctx context.Context, userID string, c
 	var conflicts []string
 
 	for _, clientSecret := range clientSecrets {
-		if clientSecret.UserID != userID {
-			return nil, fmt.Errorf("access denied for secret %s: %w", clientSecret.ID, domain.ErrAccessDenied)
-		}
-
-		if clientSecret.IsDeleted {
-			err := s.secrets.SoftDelete(ctx, clientSecret.ID, userID)
-			if err != nil && err != domain.ErrSecretNotFound {
-				conflicts = append(conflicts, clientSecret.ID)
-			}
-		} else {
-			existing, err := s.secrets.GetByID(ctx, clientSecret.ID, userID)
-			if err != nil && err != domain.ErrSecretNotFound {
-				conflicts = append(conflicts, clientSecret.ID)
-				continue
-			}
-
-			if existing == nil {
-				clientSecret.Version = 1
-				clientSecret.CreatedAt = domain.Now()
-				clientSecret.UpdatedAt = domain.Now()
-				err = s.secrets.Create(ctx, clientSecret)
-				if err != nil {
-					conflicts = append(conflicts, clientSecret.ID)
-				}
-			} else {
-				if existing.Version != clientSecret.Version {
-					conflicts = append(conflicts, clientSecret.ID)
-				} else {
-					clientSecret.Version = existing.Version
-					clientSecret.UpdatedAt = domain.Now()
-					err = s.secrets.Update(ctx, clientSecret)
-					if err != nil {
-						conflicts = append(conflicts, clientSecret.ID)
-					}
-				}
-			}
+		err := s.processSingleSecret(ctx, clientSecret, userID, &conflicts)
+		if err != nil {
+			return nil, err
 		}
 	}
 
 	return conflicts, nil
+}
+func (s *DataService) processSingleSecret(ctx context.Context, clientSecret *domain.Secret, userID string, conflicts *[]string) error {
+	err := s.validateSecretOwnership(clientSecret, userID)
+	if err != nil {
+		return err
+	}
+
+	if clientSecret.IsDeleted {
+		return s.processDeleteOperation(ctx, clientSecret, userID, conflicts)
+	}
+
+	return s.processUpsertOperation(ctx, clientSecret, userID, conflicts)
+}
+
+func (s *DataService) validateSecretOwnership(secret *domain.Secret, userID string) error {
+	if secret.UserID != userID {
+		return fmt.Errorf("access denied for secret %s: %w", secret.ID, domain.ErrAccessDenied)
+	}
+	return nil
+}
+
+func (s *DataService) processDeleteOperation(ctx context.Context, clientSecret *domain.Secret, userID string, conflicts *[]string) error {
+	err := s.secrets.SoftDelete(ctx, clientSecret.ID, userID)
+	if err != nil && err != domain.ErrSecretNotFound {
+		*conflicts = append(*conflicts, clientSecret.ID)
+	}
+	return nil
+}
+
+func (s *DataService) processUpsertOperation(ctx context.Context, clientSecret *domain.Secret, userID string, conflicts *[]string) error {
+	existing, err := s.secrets.GetByID(ctx, clientSecret.ID, userID)
+	if err != nil && err != domain.ErrSecretNotFound {
+		*conflicts = append(*conflicts, clientSecret.ID)
+		return nil
+	}
+
+	if existing == nil {
+		return s.processCreateOperation(ctx, clientSecret, conflicts)
+	}
+
+	return s.processUpdateOperation(ctx, clientSecret, existing, conflicts)
+}
+
+func (s *DataService) processCreateOperation(ctx context.Context, clientSecret *domain.Secret, conflicts *[]string) error {
+	clientSecret.Version = 1
+	clientSecret.CreatedAt = domain.Now()
+	clientSecret.UpdatedAt = domain.Now()
+
+	err := s.secrets.Create(ctx, clientSecret)
+	if err != nil {
+		*conflicts = append(*conflicts, clientSecret.ID)
+	}
+	return nil
+}
+
+func (s *DataService) processUpdateOperation(ctx context.Context, clientSecret *domain.Secret, existing *domain.Secret, conflicts *[]string) error {
+	if existing.Version != clientSecret.Version {
+		*conflicts = append(*conflicts, clientSecret.ID)
+		return nil
+	}
+
+	clientSecret.Version = existing.Version
+	clientSecret.UpdatedAt = domain.Now()
+
+	err := s.secrets.Update(ctx, clientSecret)
+	if err != nil {
+		*conflicts = append(*conflicts, clientSecret.ID)
+	}
+	return nil
 }
 
 func (s *DataService) validateSecret(secret *domain.Secret) error {

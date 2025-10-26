@@ -11,6 +11,7 @@ import (
 	pb "github.com/alisaviation/GophKeeper/internal/generated/grpc"
 	"github.com/alisaviation/GophKeeper/internal/server/app"
 	"github.com/alisaviation/GophKeeper/internal/server/domain"
+	"github.com/alisaviation/GophKeeper/internal/server/mocks"
 	"github.com/alisaviation/GophKeeper/internal/server/transport/handlers"
 	"github.com/alisaviation/GophKeeper/internal/server/transport/middleware"
 )
@@ -21,8 +22,8 @@ func testContextWithUser(user *domain.User) context.Context {
 }
 
 func TestSecretHandler_Sync(t *testing.T) {
-	mockSecretRepo := app.NewMockSecretRepository()
-	mockEncryptor := &app.MockEncryptor{}
+	mockSecretRepo := mocks.NewMockSecretRepository()
+	mockEncryptor := &mocks.MockEncryptor{}
 	dataService := app.NewDataService(mockSecretRepo, mockEncryptor)
 	handler := handlers.NewSecretHandler(dataService)
 
@@ -192,8 +193,8 @@ func contains(slice []string, item string) bool {
 }
 
 func TestSecretHandler_GetSecret(t *testing.T) {
-	mockSecretRepo := app.NewMockSecretRepository()
-	mockEncryptor := &app.MockEncryptor{}
+	mockSecretRepo := mocks.NewMockSecretRepository()
+	mockEncryptor := &mocks.MockEncryptor{}
 	dataService := app.NewDataService(mockSecretRepo, mockEncryptor)
 	handler := handlers.NewSecretHandler(dataService)
 
@@ -296,8 +297,8 @@ func TestSecretHandler_GetSecret(t *testing.T) {
 }
 
 func TestSecretHandler_ListSecrets(t *testing.T) {
-	mockSecretRepo := app.NewMockSecretRepository()
-	mockEncryptor := &app.MockEncryptor{}
+	mockSecretRepo := mocks.NewMockSecretRepository()
+	mockEncryptor := &mocks.MockEncryptor{}
 	dataService := app.NewDataService(mockSecretRepo, mockEncryptor)
 	handler := handlers.NewSecretHandler(dataService)
 

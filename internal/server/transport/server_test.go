@@ -11,14 +11,15 @@ import (
 
 	grpc2 "github.com/alisaviation/GophKeeper/internal/generated/grpc"
 	"github.com/alisaviation/GophKeeper/internal/server/app"
+	"github.com/alisaviation/GophKeeper/internal/server/mocks"
 	"github.com/alisaviation/GophKeeper/internal/server/transport"
 )
 
 func TestServer_Integration(t *testing.T) {
-	mockUserRepo := app.NewMockUserRepository()
-	mockSecretRepo := app.NewMockSecretRepository()
-	mockJWTManager := app.NewMockJWTManager()
-	mockEncryptor := &app.MockEncryptor{}
+	mockUserRepo := mocks.NewMockUserRepository()
+	mockSecretRepo := mocks.NewMockSecretRepository()
+	mockJWTManager := mocks.NewMockJWTManager()
+	mockEncryptor := &mocks.MockEncryptor{}
 
 	authService := app.NewAuthService(mockUserRepo, mockJWTManager)
 	dataService := app.NewDataService(mockSecretRepo, mockEncryptor)

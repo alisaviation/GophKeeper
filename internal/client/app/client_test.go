@@ -6,12 +6,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alisaviation/GophKeeper/internal/client/domain"
-	pb "github.com/alisaviation/GophKeeper/internal/generated/grpc"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+
+	"github.com/alisaviation/GophKeeper/internal/client/domain"
+	pb "github.com/alisaviation/GophKeeper/internal/generated/grpc"
 )
 
 func TestClient_Register(t *testing.T) {

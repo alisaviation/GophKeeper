@@ -12,12 +12,13 @@ import (
 	pb "github.com/alisaviation/GophKeeper/internal/generated/grpc"
 	"github.com/alisaviation/GophKeeper/internal/server/app"
 	"github.com/alisaviation/GophKeeper/internal/server/domain"
+	"github.com/alisaviation/GophKeeper/internal/server/mocks"
 	"github.com/alisaviation/GophKeeper/internal/server/transport/handlers"
 )
 
 func TestAuthHandler_Register(t *testing.T) {
-	mockUserRepo := app.NewMockUserRepository()
-	mockJWTManager := app.NewMockJWTManager()
+	mockUserRepo := mocks.NewMockUserRepository()
+	mockJWTManager := mocks.NewMockJWTManager()
 	authService := app.NewAuthService(mockUserRepo, mockJWTManager)
 	handler := handlers.NewAuthHandler(authService)
 
@@ -118,8 +119,8 @@ func TestAuthHandler_Register(t *testing.T) {
 }
 
 func TestAuthHandler_Login(t *testing.T) {
-	mockUserRepo := app.NewMockUserRepository()
-	mockJWTManager := app.NewMockJWTManager()
+	mockUserRepo := mocks.NewMockUserRepository()
+	mockJWTManager := mocks.NewMockJWTManager()
 	authService := app.NewAuthService(mockUserRepo, mockJWTManager)
 	handler := handlers.NewAuthHandler(authService)
 
@@ -226,8 +227,8 @@ func TestAuthHandler_Login(t *testing.T) {
 }
 
 func TestAuthHandler_RefreshToken(t *testing.T) {
-	mockUserRepo := app.NewMockUserRepository()
-	mockJWTManager := app.NewMockJWTManager()
+	mockUserRepo := mocks.NewMockUserRepository()
+	mockJWTManager := mocks.NewMockJWTManager()
 	authService := app.NewAuthService(mockUserRepo, mockJWTManager)
 	handler := handlers.NewAuthHandler(authService)
 

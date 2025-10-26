@@ -9,11 +9,12 @@ import (
 
 	"github.com/alisaviation/GophKeeper/internal/server/app"
 	"github.com/alisaviation/GophKeeper/internal/server/domain"
+	"github.com/alisaviation/GophKeeper/internal/server/mocks"
 )
 
 func TestAuthService_Register(t *testing.T) {
-	userRepo := app.NewMockUserRepository()
-	jwtManager := app.NewMockJWTManager()
+	userRepo := mocks.NewMockUserRepository()
+	jwtManager := mocks.NewMockJWTManager()
 	authService := app.NewAuthService(userRepo, jwtManager)
 	ctx := context.Background()
 
@@ -63,8 +64,8 @@ func TestAuthService_Register(t *testing.T) {
 }
 
 func TestAuthService_Login(t *testing.T) {
-	userRepo := app.NewMockUserRepository()
-	jwtManager := app.NewMockJWTManager()
+	userRepo := mocks.NewMockUserRepository()
+	jwtManager := mocks.NewMockJWTManager()
 	authService := app.NewAuthService(userRepo, jwtManager)
 	ctx := context.Background()
 
@@ -110,8 +111,8 @@ func TestAuthService_Login(t *testing.T) {
 }
 
 func TestAuthService_ValidateToken(t *testing.T) {
-	userRepo := app.NewMockUserRepository()
-	jwtManager := app.NewMockJWTManager()
+	userRepo := mocks.NewMockUserRepository()
+	jwtManager := mocks.NewMockJWTManager()
 	authService := app.NewAuthService(userRepo, jwtManager)
 	ctx := context.Background()
 
@@ -144,8 +145,8 @@ func TestAuthService_ValidateToken(t *testing.T) {
 }
 
 func TestAuthService_RefreshTokens(t *testing.T) {
-	userRepo := app.NewMockUserRepository()
-	jwtManager := app.NewMockJWTManager()
+	userRepo := mocks.NewMockUserRepository()
+	jwtManager := mocks.NewMockJWTManager()
 	authService := app.NewAuthService(userRepo, jwtManager)
 	ctx := context.Background()
 
@@ -188,8 +189,8 @@ func TestAuthService_RefreshTokens(t *testing.T) {
 }
 
 func TestAuthService_ValidateToken_WrongTokenType(t *testing.T) {
-	userRepo := app.NewMockUserRepository()
-	jwtManager := app.NewMockJWTManager()
+	userRepo := mocks.NewMockUserRepository()
+	jwtManager := mocks.NewMockJWTManager()
 	authService := app.NewAuthService(userRepo, jwtManager)
 	ctx := context.Background()
 

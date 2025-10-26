@@ -25,14 +25,14 @@ func main() {
 		log.Fatal("Failed to run migrations:", err)
 	}
 
-	storage, err := storage.NewStorage(storage.Config{
+	newStorage, err := storage.NewStorage(storage.Config{
 		Type:     storage.TypePostgreSQL,
 		Database: cfg.Database,
 	})
 	if err != nil {
-		log.Fatal("Failed to create storage:", err)
+		log.Fatal("Failed to create newStorage:", err)
 	}
-	defer storage.Close()
+	defer newStorage.Close()
 
 	jwtManager := crypto.NewJWTManager(&crypto.JWTConfig{
 		Secret:        cfg.JWT.Secret,
@@ -50,8 +50,8 @@ func main() {
 		encryptor = &crypto.NoopEncryptor{}
 	}
 
-	authService := app.NewAuthService(storage.UserRepository(), jwtManager)
-	dataService := app.NewDataService(storage.SecretRepository(), encryptor)
+	authService := app.NewAuthService(newStorage.UserRepository(), jwtManager)
+	dataService := app.NewDataService(newStorage.SecretRepository(), encryptor)
 
 	grpcConfig := transport.Config{
 		Port: cfg.GRPCPort,
