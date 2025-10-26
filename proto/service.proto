@@ -1,0 +1,166 @@
+syntax = "proto3";
+
+package gophkeeper.v1;
+
+option go_package = "github.com/alisaviation/gophkeeper/internal/server/transport/grpc;gophkeeper_v1";
+
+// Сервис аутентификации и управления пользователями
+service AuthService {
+  rpc Register(RegisterRequest) returns (RegisterResponse);
+  rpc Login(LoginRequest) returns (LoginResponse);
+  rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse);
+  rpc Logout(LogoutRequest) returns (LogoutResponse);
+}
+
+// Сервис управления секретами
+service SecretService {
+  rpc Sync(SyncRequest) returns (SyncResponse);
+  rpc GetSecret(GetSecretRequest) returns (GetSecretResponse);
+  rpc ListSecrets(ListSecretsRequest) returns (ListSecretsResponse);
+  rpc UpdateSecret(UpdateSecretRequest) returns (UpdateSecretResponse);
+  rpc DeleteSecret(DeleteSecretRequest) returns (DeleteSecretResponse);
+}
+
+// Сообщения для аутентификации
+message RegisterRequest {
+  string login = 1;
+  string password = 2;
+}
+
+message RegisterResponse {
+  string user_id = 1;
+}
+
+message LoginRequest {
+  string login = 1;
+  string password = 2;
+}
+
+message LoginResponse {
+  string access_token = 1;
+  string refresh_token = 2;
+  string user_id = 3;
+}
+
+message RefreshTokenRequest {
+  string refresh_token = 1;
+}
+
+message RefreshTokenResponse {
+  string access_token = 1;
+  string refresh_token = 2;
+}
+
+message LogoutRequest {
+  string refresh_token = 1;
+}
+
+message LogoutResponse {
+  bool success = 1;
+}
+
+// Сообщения для управления секретами
+message Secret {
+  string id = 1;           // UUID секрета
+  string user_id = 2;      // Владелец секрета
+  SecretType type = 3;     // Тип секрета
+  string name = 4;         // Название (зашифровано на клиенте)
+  bytes encrypted_data = 5; // Зашифрованные данные (структура зависит от типа)
+  bytes encrypted_meta = 6; // Зашифрованная метаинформация
+  int64 version = 7;       // Версия для разрешения конфликтов
+  int64 created_at = 8;    // Unix timestamp создания
+  int64 updated_at = 9;    // Unix timestamp обновления
+  bool is_deleted = 10;    // Флаг удаления (soft delete)
+}
+
+// Типы секретов
+enum SecretType {
+  SECRET_TYPE_UNSPECIFIED = 0;
+  LOGIN_PASSWORD = 1;
+  TEXT_DATA = 2;
+  BINARY_DATA = 3;
+  BANK_CARD = 4;
+}
+
+// Сообщения для синхронизации
+message SyncRequest {
+  string user_id = 1;
+  int64 last_sync_version = 2; // Версия последней синхронизации клиента
+  repeated Secret secrets = 3;  // Секреты для отправки на сервер
+}
+
+message SyncResponse {
+  int64 current_version = 1;    // Текущая версия на сервере
+  repeated Secret secrets = 2;  // Секреты для обновления на клиенте
+  repeated string conflicts = 3; // ID конфликтных секретов (нужно разрешить вручную)
+}
+
+// Сообщения для отдельных операций
+message GetSecretRequest {
+  string secret_id = 1;
+}
+
+message GetSecretResponse {
+  Secret secret = 1;
+}
+
+message ListSecretsRequest {
+  string user_id = 1;
+  SecretType filter_type = 2; // Опциональный фильтр по типу
+}
+
+message ListSecretsResponse {
+  repeated Secret secrets = 1;
+}
+
+message UpdateSecretRequest {
+  Secret secret = 1;
+}
+
+message UpdateSecretResponse {
+  Secret secret = 1;
+}
+
+message DeleteSecretRequest {
+  string secret_id = 1;
+}
+
+message DeleteSecretResponse {
+  bool success = 1;
+}
+
+// Внутренние структуры данных (для клиентского шифрования)
+// Эти сообщения используются только на клиенте после расшифровки
+
+message LoginPasswordData {
+  string login = 1;
+  string password = 2;
+  string website = 3;
+  string notes = 4;
+}
+
+message TextData {
+  string content = 1;
+  string description = 2;
+}
+
+message BinaryData {
+  string filename = 1;
+  bytes content = 2;
+  string content_type = 3;
+}
+
+message BankCardData {
+  string card_holder = 1;
+  string card_number = 2;
+  string expiry_date = 3;
+  string cvv = 4;
+  string bank_name = 5;
+}
+
+message SecretMetadata {
+  map<string, string> labels = 1;
+  string description = 2;
+  string category = 3;
+  repeated string tags = 4;
+}

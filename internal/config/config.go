@@ -1,0 +1,310 @@
+// Package config handles configuration management for GophKeeper client and server.
+package config
+
+import (
+	"encoding/json"
+	"flag"
+	"fmt"
+	"os"
+	"strconv"
+	"time"
+)
+
+// SetClientConfig initializes and returns client configuration
+func SetClientConfig() ClientConfig {
+	var config ClientConfig
+	var configFile string
+
+	defaultConfig := ClientConfig{
+		ServerAddress: "localhost:8080",
+		StoragePath:   getDefaultStoragePath(),
+		AutoSync:      true,
+	}
+
+	config = defaultConfig
+
+	if configFile != "" {
+		var fileConfig FileConfig
+		if err := loadConfigFromFile(configFile, &fileConfig); err != nil {
+			fmt.Printf("Warning: failed to load config file: %v\n", err)
+		} else {
+			applyFileConfigToClient(&config, fileConfig)
+		}
+	}
+
+	applyEnvToClient(&config)
+
+	if envConfigFile, exists := os.LookupEnv("CONFIG"); exists && configFile == "" {
+		var fileConfig FileConfig
+		if err := loadConfigFromFile(envConfigFile, &fileConfig); err == nil {
+			applyFileConfigToClient(&config, fileConfig)
+		}
+	}
+
+	return config
+}
+
+// SetServerConfig initializes and returns server configuration
+func SetServerConfig() ServerConfig {
+	var config ServerConfig
+	var configFile string
+
+	flag.StringVar(&configFile, "c", "", "Path to config file")
+	flag.StringVar(&configFile, "config", "", "Path to config file")
+	grpcPort := flag.Int("p", 8080, "gRPC server port")
+
+	dbHost := flag.String("db-host", "localhost", "Database host")
+	dbPort := flag.Int("db-port", 5432, "Database port")
+	dbUser := flag.String("db-user", "postgres", "Database user")
+	dbPassword := flag.String("db-password", "", "Database password")
+	dbName := flag.String("db-name", "gophkeeper", "Database name")
+	dbSSLMode := flag.String("db-ssl-mode", "disable", "Database SSL mode")
+	dbMaxConns := flag.Int("db-max-conns", 25, "Database max connections")
+	dbMaxIdleTime := flag.String("db-max-idle-time", "1m", "Database max idle time")
+
+	jwtSecret := flag.String("jwt-secret", "default-jwt-secret-key-change-in-production", "JWT secret")
+	jwtAccessExpiry := flag.String("jwt-access-expiry", "15m", "JWT access token expiry")
+	jwtRefreshExpiry := flag.String("jwt-refresh-expiry", "168h", "JWT refresh token expiry")
+
+	encryptionKey := flag.String("encryption-key", "", "Encryption key")
+
+	flag.Parse()
+
+	defaultConfig := ServerConfig{
+		GRPCPort: 8080,
+		Database: DatabaseConfig{
+			Type:            "postgres",
+			Host:            "localhost",
+			Port:            5432,
+			User:            "postgres",
+			Password:        "",
+			Name:            "gophkeeper",
+			SSLMode:         "disable",
+			MaxOpenConns:    25,
+			MaxIdleConns:    5,
+			ConnMaxLifetime: 5 * time.Minute,
+			ConnMaxIdleTime: time.Minute,
+		},
+		JWT: JWTConfig{
+			Secret:        "default-jwt-secret-key-change-in-production",
+			AccessExpiry:  15 * time.Minute,
+			RefreshExpiry: 7 * 24 * time.Hour,
+		},
+		Encryption: EncryptionConfig{
+			Key: "",
+		},
+	}
+
+	config = defaultConfig
+
+	if configFile != "" {
+		var fileConfig FileConfig
+		if err := loadConfigFromFile(configFile, &fileConfig); err != nil {
+			fmt.Printf("Warning: failed to load config file: %v\n", err)
+		} else {
+			applyFileConfigToServer(&config, fileConfig)
+		}
+	}
+
+	config.GRPCPort = *grpcPort
+	config.Database.Host = *dbHost
+	config.Database.Port = *dbPort
+	config.Database.User = *dbUser
+	config.Database.Password = *dbPassword
+	config.Database.Name = *dbName
+	config.Database.SSLMode = *dbSSLMode
+	config.Database.MaxOpenConns = *dbMaxConns
+	if *dbMaxIdleTime != "" {
+		config.Database.ConnMaxIdleTime = parseDuration(*dbMaxIdleTime, config.Database.ConnMaxIdleTime)
+	}
+
+	config.JWT.Secret = *jwtSecret
+	if *jwtAccessExpiry != "" {
+		config.JWT.AccessExpiry = parseDuration(*jwtAccessExpiry, config.JWT.AccessExpiry)
+	}
+	if *jwtRefreshExpiry != "" {
+		config.JWT.RefreshExpiry = parseDuration(*jwtRefreshExpiry, config.JWT.RefreshExpiry)
+	}
+
+	config.Encryption.Key = *encryptionKey
+
+	applyEnvToServer(&config)
+
+	if envConfigFile, exists := os.LookupEnv("CONFIG"); exists && configFile == "" {
+		var fileConfig FileConfig
+		if err := loadConfigFromFile(envConfigFile, &fileConfig); err == nil {
+			applyFileConfigToServer(&config, fileConfig)
+		}
+	}
+
+	return config
+}
+
+func getDefaultStoragePath() string {
+	configDir, err := os.UserConfigDir()
+	if err != nil {
+		return "./gophkeeper"
+	}
+	return configDir + "/gophkeeper"
+}
+
+func parseDuration(value string, defaultValue time.Duration) time.Duration {
+	if value == "" {
+		return defaultValue
+	}
+	duration, err := time.ParseDuration(value)
+	if err != nil {
+		fmt.Printf("Warning: invalid duration '%s', using default: %v\n", value, err)
+		return defaultValue
+	}
+	return duration
+}
+
+func applyFileConfigToClient(config *ClientConfig, fileConfig FileConfig) {
+	if fileConfig.ServerAddress != "" {
+		config.ServerAddress = fileConfig.ServerAddress
+	}
+	if fileConfig.StoragePath != "" {
+		config.StoragePath = fileConfig.StoragePath
+	}
+	config.AutoSync = fileConfig.AutoSync
+}
+
+func applyFileConfigToServer(config *ServerConfig, fileConfig FileConfig) {
+	if fileConfig.GRPCPort != 0 {
+		config.GRPCPort = fileConfig.GRPCPort
+	}
+	if fileConfig.ServerAddress != "" {
+		config.ServerAddress = fileConfig.ServerAddress
+	}
+
+	if fileConfig.DatabaseHost != "" {
+		config.Database.Host = fileConfig.DatabaseHost
+	}
+	if fileConfig.DatabasePort != 0 {
+		config.Database.Port = fileConfig.DatabasePort
+	}
+	if fileConfig.DatabaseUser != "" {
+		config.Database.User = fileConfig.DatabaseUser
+	}
+	if fileConfig.DatabasePassword != "" {
+		config.Database.Password = fileConfig.DatabasePassword
+	}
+	if fileConfig.DatabaseName != "" {
+		config.Database.Name = fileConfig.DatabaseName
+
+	}
+	if fileConfig.DatabaseSSLMode != "" {
+		config.Database.SSLMode = fileConfig.DatabaseSSLMode
+
+	}
+	if fileConfig.DatabaseMaxConns != 0 {
+		config.Database.MaxOpenConns = fileConfig.DatabaseMaxConns
+
+	}
+	if fileConfig.DatabaseMaxIdleTime != "" {
+		config.Database.ConnMaxIdleTime = parseDuration(fileConfig.DatabaseMaxIdleTime, config.Database.ConnMaxIdleTime)
+	}
+
+	if fileConfig.JWTSecret != "" {
+		config.JWT.Secret = fileConfig.JWTSecret
+
+	}
+	if fileConfig.JWTAccessExpiry != "" {
+		config.JWT.AccessExpiry = parseDuration(fileConfig.JWTAccessExpiry, config.JWT.AccessExpiry)
+	}
+	if fileConfig.JWTRefreshExpiry != "" {
+		config.JWT.RefreshExpiry = parseDuration(fileConfig.JWTRefreshExpiry, config.JWT.RefreshExpiry)
+	}
+
+	if fileConfig.EncryptionKey != "" {
+		config.Encryption.Key = fileConfig.EncryptionKey
+	}
+}
+
+func applyEnvToClient(config *ClientConfig) {
+	if envServerAddress, exists := os.LookupEnv("SERVER_ADDRESS"); exists {
+		config.ServerAddress = envServerAddress
+	}
+	if envStoragePath, exists := os.LookupEnv("STORAGE_PATH"); exists {
+		config.StoragePath = envStoragePath
+	}
+	if envAutoSync, exists := os.LookupEnv("AUTO_SYNC"); exists {
+		if autoSync, err := strconv.ParseBool(envAutoSync); err == nil {
+			config.AutoSync = autoSync
+		}
+	}
+}
+
+func applyEnvToServer(config *ServerConfig) {
+	if envGRPCPort, exists := os.LookupEnv("GRPC_PORT"); exists {
+		if port, err := strconv.Atoi(envGRPCPort); err == nil {
+			config.GRPCPort = port
+		}
+	}
+	if envServerAddress, exists := os.LookupEnv("SERVER_ADDRESS"); exists {
+		config.ServerAddress = envServerAddress
+	}
+
+	if envDBHost, exists := os.LookupEnv("DB_HOST"); exists {
+		config.Database.Host = envDBHost
+	}
+	if envDBPort, exists := os.LookupEnv("DB_PORT"); exists {
+		if port, err := strconv.Atoi(envDBPort); err == nil {
+			config.Database.Port = port
+		}
+	}
+	if envDBUser, exists := os.LookupEnv("DB_USER"); exists {
+		config.Database.User = envDBUser
+	}
+	if envDBPassword, exists := os.LookupEnv("DB_PASSWORD"); exists {
+		config.Database.Password = envDBPassword
+	}
+	if envDBName, exists := os.LookupEnv("DB_NAME"); exists {
+		config.Database.Name = envDBName
+	}
+	if envDBSSLMode, exists := os.LookupEnv("DB_SSL_MODE"); exists {
+		config.Database.SSLMode = envDBSSLMode
+	}
+	if envDBMaxConns, exists := os.LookupEnv("DB_MAX_CONNS"); exists {
+		if maxConns, err := strconv.Atoi(envDBMaxConns); err == nil {
+			config.Database.MaxOpenConns = maxConns
+		}
+	}
+	if envDBMaxIdleTime, exists := os.LookupEnv("DB_MAX_IDLE_TIME"); exists {
+		config.Database.ConnMaxIdleTime = parseDuration(envDBMaxIdleTime, config.Database.ConnMaxIdleTime)
+	}
+
+	if envJWTSecret, exists := os.LookupEnv("JWT_SECRET"); exists {
+		config.JWT.Secret = envJWTSecret
+	}
+	if envJWTAccessExpiry, exists := os.LookupEnv("JWT_ACCESS_EXPIRY"); exists {
+		config.JWT.AccessExpiry = parseDuration(envJWTAccessExpiry, config.JWT.AccessExpiry)
+	}
+	if envJWTRefreshExpiry, exists := os.LookupEnv("JWT_REFRESH_EXPIRY"); exists {
+		config.JWT.RefreshExpiry = parseDuration(envJWTRefreshExpiry, config.JWT.RefreshExpiry)
+	}
+
+	if envEncryptionKey, exists := os.LookupEnv("ENCRYPTION_KEY"); exists {
+		config.Encryption.Key = envEncryptionKey
+	}
+}
+
+func loadConfigFromFile(filePath string, config *FileConfig) error {
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return fmt.Errorf("failed to read config file: %w", err)
+	}
+
+	if err := json.Unmarshal(data, config); err != nil {
+		return fmt.Errorf("failed to parse JSON config: %w", err)
+	}
+
+	return nil
+}
+
+// DSN возвращает строку подключения к базе данных
+func (d DatabaseConfig) DSN() string {
+	return fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=%s",
+		d.User, d.Password, d.Host, d.Port, d.Name, d.SSLMode)
+}
